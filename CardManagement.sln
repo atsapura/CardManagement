@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.572
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "CardManagement", "CardManagement\CardManagement.fsproj", "{5438E2FD-4002-4BDF-859D-47F2E1B536B6}"
+EndProject
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "CardManagement.Common", "CardManagement.Common\CardManagement.Common.fsproj", "{5F07D8E7-80FE-4C45-9F06-280EF75A51DF}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "CardManagement.Api", "CardManagement.Api\CardManagement.Api\CardManagement.Api.fsproj", "{83F3B3AF-970D-4D14-ADED-93E34820EC03}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5438E2FD-4002-4BDF-859D-47F2E1B536B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5438E2FD-4002-4BDF-859D-47F2E1B536B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5438E2FD-4002-4BDF-859D-47F2E1B536B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5438E2FD-4002-4BDF-859D-47F2E1B536B6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5F07D8E7-80FE-4C45-9F06-280EF75A51DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5F07D8E7-80FE-4C45-9F06-280EF75A51DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5F07D8E7-80FE-4C45-9F06-280EF75A51DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5F07D8E7-80FE-4C45-9F06-280EF75A51DF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{83F3B3AF-970D-4D14-ADED-93E34820EC03}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{83F3B3AF-970D-4D14-ADED-93E34820EC03}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{83F3B3AF-970D-4D14-ADED-93E34820EC03}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{83F3B3AF-970D-4D14-ADED-93E34820EC03}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {73984EBC-C77E-4D1B-BB0C-A1E8714711C1}
+	EndGlobalSection
+EndGlobal

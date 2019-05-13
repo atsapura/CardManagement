@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Country.fs" />
+    <Compile Include="CardDomain.fs" />
+    <Compile Include="CardDomainReadModels.fs" />
+    <Compile Include="CardActions.fs" />
+    <Compile Include="CardDomainCommandModels.fs" />
+    <Compile Include="CardWorkflows.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FsToolkit.ErrorHandling" Version="1.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CardManagement.Common\CardManagement.Common.fsproj" />
+  </ItemGroup>
+
+</Project>
