@@ -53,8 +53,14 @@ module CardWorkflows =
             asyncResult{
                 let! validCommand = activateCommand |> validateActivateCardCommand
                 let! card = validCommand.CardNumber |> getCardAsync
-                let! cardAccountInfo = getCardAccountInfoAsync validCommand.CardNumber
-                let activeCard = activate cardAccountInfo card
+                let! activeCard =
+                    match card with
+                    | Active _ -> card |> AsyncResult.retn
+                    | Deactivated _ ->
+                        asyncResult {
+                            let! cardAccountInfo = getCardAccountInfoAsync validCommand.CardNumber
+                            return activate cardAccountInfo card
+                        }
                 return activeCard |> toCardInfoModel
             }
 
