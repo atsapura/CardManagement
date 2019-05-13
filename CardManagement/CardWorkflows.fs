@@ -29,42 +29,42 @@ module CardWorkflows =
                 return card |> toCardInfoModel
             }
 
-    let getCardDetails (getCardDetailsFromDbAsync: CardNumber -> AsyncResult<CardDetails, Error>)
+    let getCardDetails (getCardDetailsAsync: CardNumber -> AsyncResult<CardDetails, Error>)
         : GetCardDetails =
         fun cardNumber ->
             asyncResult {
                 let! cardNumber = CardNumber.create cardNumber
-                let! card = getCardDetailsFromDbAsync cardNumber
+                let! card = getCardDetailsAsync cardNumber
                 return card |> toCardDetailsModel
             }
 
-    let getUser (getUserFromDbAsync: UserId -> AsyncResult<User, Error>) : GetUser =
+    let getUser (getUserAsync: UserId -> AsyncResult<User, Error>) : GetUser =
         fun userId ->
             asyncResult {
-                let! user = getUserFromDbAsync userId
+                let! user = getUserAsync userId
                 return user |> toUserModel
             }
 
     let activateCard
-        (getCardFromDbAsync: CardNumber -> AsyncResult<Card, Error>)
+        (getCardAsync: CardNumber -> AsyncResult<Card, Error>)
         (getCardAccountInfoAsync: CardNumber -> AsyncResult<CardAccountInfo, Error>)
         : ActivateCard =
         fun activateCommand ->
             asyncResult{
                 let! validCommand = activateCommand |> validateActivateCardCommand
-                let! card = validCommand.CardNumber |> getCardFromDbAsync
+                let! card = validCommand.CardNumber |> getCardAsync
                 let! cardAccountInfo = getCardAccountInfoAsync validCommand.CardNumber
                 let activeCard = activate cardAccountInfo card
                 return activeCard |> toCardInfoModel
             }
 
     let deactivateCard
-        (getCardFromDbAsync: CardNumber -> AsyncResult<Card, Error>)
+        (getCardAsync: CardNumber -> AsyncResult<Card, Error>)
         : DeactivateCard =
         fun deactivateCommand ->
             asyncResult {
                 let! validCommand = deactivateCommand |> validateDeactivateCardCommand
-                let! card = validCommand.CardNumber |> getCardFromDbAsync
+                let! card = validCommand.CardNumber |> getCardAsync
                 let deactivatedCard = deactivate card
                 return deactivatedCard |> toCardInfoModel
             }
