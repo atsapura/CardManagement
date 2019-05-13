@@ -12,7 +12,7 @@ module Errors =
     type DataRelatedError =
         | EntityNotFound of entityName: string * id: string
         | EntityIsInUse of entityName: string
-        | Unexpected of Exception
+        | Panic of Exception
 
     type Error =
         | ValidationError of ValidationError
@@ -36,7 +36,7 @@ module Errors =
 
     let expectDataRelatedError result =
         match result with
-        | Error (Unexpected ex) -> Bug ex |> Error
+        | Error (Panic ex) -> Bug ex |> Error
         | result -> Result.mapError DataError result
 
     let expectDataRelatedErrorAsync asyncResult =
