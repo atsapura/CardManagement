@@ -11,12 +11,12 @@ module CardDomain =
     type CardNumber = private CardNumber of string
         with
         member this.Value = match this with CardNumber s -> s
-        static member create str =
+        static member create path str =
             match str with
-            | (null|"") -> validationError "card number can't be empty"
+            | (null|"") -> validationError path "card number can't be empty"
             | str ->
                 if cardNumberRegex.IsMatch(str) then CardNumber str |> Ok
-                else validationError "Card number must be of 16 digits only"
+                else validationError path "Card number must be of 16 digits only"
 
     [<Struct>]
     type DailyLimit =

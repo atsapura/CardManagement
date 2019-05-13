@@ -20,28 +20,28 @@ module CardDomainCommandModels =
           Number: string
           Limit: decimal }
 
-    type ValidateActivateCardCommand = ActivateCardCommandModel -> Result<ActivateCommand, Error>
-    type ValidateDeactivateCardCommand = DeactivateCardCommandModel -> Result<DeactivateCommand, Error>
-    type ValidateSetDailyLimitCommand = SetDailyLimitCardCommandModel -> Result<SetDailyLimitCommand, Error>
+    type ValidateActivateCardCommand = ActivateCardCommandModel -> Result<ActivateCommand, ValidationError>
+    type ValidateDeactivateCardCommand = DeactivateCardCommandModel -> Result<DeactivateCommand, ValidationError>
+    type ValidateSetDailyLimitCommand = SetDailyLimitCardCommandModel -> Result<SetDailyLimitCommand, ValidationError>
 
     let validateActivateCardCommand : ValidateActivateCardCommand =
         fun cmd ->
             result {
-                let! number = cmd.Number |> CardNumber.create
+                let! number = cmd.Number |> CardNumber.create "cardNumber"
                 return { ActivateCommand.CardNumber = number }
             }
 
     let validateDeactivateCardCommand : ValidateDeactivateCardCommand =
         fun cmd ->
             result {
-                let! number = cmd.Number |> CardNumber.create
+                let! number = cmd.Number |> CardNumber.create "cardNumber"
                 return { CardNumber = number }
             }
 
     let validateSetDailyLimitCommand : ValidateSetDailyLimitCommand =
         fun cmd ->
             result {
-                let! number = cmd.Number |> CardNumber.create
+                let! number = cmd.Number |> CardNumber.create "cardNumber"
                 let limit = DailyLimit.ofDecimal cmd.Limit
                 return
                     { CardNumber = number

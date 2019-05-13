@@ -29,7 +29,7 @@ module CommonTypes =
             | October -> 10us
             | November -> 11us
             | December -> 12us
-        static member ofNumber n =
+        static member ofNumber field n =
             match n with
             | 1us -> January |> Ok
             | 2us -> February |> Ok
@@ -43,25 +43,25 @@ module CommonTypes =
             | 10us -> October |> Ok
             | 11us -> November |> Ok
             | 12us -> December |> Ok
-            | _ -> validationError "Number must be from 1 to 12"
+            | _ -> validationError field "Number must be from 1 to 12"
 
     [<Struct>]
     type Year = private Year of uint16
         with
         member this.Value = match this with Year year -> year
-        static member create year =
+        static member create field year =
             if year >= 2019us && year <= 2050us then Year year |> Ok
-            else validationError "Year must be between 2019 and 2050"
+            else validationError field "Year must be between 2019 and 2050"
 
 
     type LetterString = LetterString of string
         with
         member this.Value = match this with LetterString s -> s
-        static member create str =
+        static member create field str =
             match str with
-            | (""|null) -> validationError "string must contain letters"
+            | (""|null) -> validationError field "string must contain letters"
             | str ->
-                if nonLettersRegex.IsMatch(str) then validationError ("string must contain only letters")
+                if nonLettersRegex.IsMatch(str) then validationError field "string must contain only letters"
                 else LetterString str |> Ok
 
     [<Struct>]
@@ -72,10 +72,10 @@ module CommonTypes =
     type PostalCode = private PostalCode of string
         with
         member this.Value = match this with PostalCode code -> code
-        static member create str =
+        static member create field str =
             match str with
-            | (""|null) -> validationError "Postal code can't be empty"
+            | (""|null) -> validationError field "Postal code can't be empty"
             | str ->
                 if postalCodeRegex.IsMatch(str)
-                    then validationError ("postal code must contain 5 or 6 digits and nothing else")
+                    then validationError field "postal code must contain 5 or 6 digits and nothing else"
                 else PostalCode str |> Ok
