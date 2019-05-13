@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <Compile Include="Errors.fs" />
+    <Compile Include="CommonTypes.fs" />
   </ItemGroup>
 
 </Project>

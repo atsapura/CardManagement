@@ -1,10 +1,11 @@
 ﻿namespace CardManagement
 
-open CardDomain
-open CardManagement.Common.Errors
 
 module CardActions =
     open System
+    open CardDomain
+    open CardManagement.Common.Errors
+    open CardManagement.Common
 
     type CardAccountInfo =
         { UserId: UserId
