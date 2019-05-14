@@ -1,4 +1,4 @@
-﻿namespace CardManagement
+﻿namespace CardManagement.Common
 
     type Country =
         | Afghanistan

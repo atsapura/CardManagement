@@ -50,13 +50,6 @@ module CardDomain =
         | Active of CardInfo
         | Deactivated of BasicCardInfo
 
-    type Address =
-        { Country: Country
-          City: LetterString
-          PostalCode: PostalCode 
-          AddressLine1: string
-          AddressLine2: string }
-
     type CardDetails =
         { Card: Card 
           HolderAddress: Address

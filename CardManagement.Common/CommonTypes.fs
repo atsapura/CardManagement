@@ -79,3 +79,10 @@ module CommonTypes =
                 if postalCodeRegex.IsMatch(str)
                     then validationError field "postal code must contain 5 or 6 digits and nothing else"
                 else PostalCode str |> Ok
+
+    type Address =
+        { Country: Country
+          City: LetterString
+          PostalCode: PostalCode
+          AddressLine1: string
+          AddressLine2: string }

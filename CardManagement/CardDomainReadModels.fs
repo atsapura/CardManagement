@@ -1,8 +1,9 @@
 ﻿namespace CardManagement
-open CardDomain
 
 module CardDomainReadModels =
     open System
+    open CardDomain
+    open CardManagement.Common
 
     type AddressModel =
         { Country: string

@@ -12,6 +12,7 @@ module Errors =
     type DataRelatedError =
         | EntityNotFound of entityName: string * id: string
         | EntityIsInUse of entityName: string
+        | UpdateError of entityName:string * message:string
         | Panic of Exception
 
     type Error =
@@ -44,3 +45,7 @@ module Errors =
             let! result = asyncResult
             return expectDataRelatedError result
         }
+
+    type AsyncResult<'a, 'error> = Async<Result<'a, 'error>>
+    type ValidationResult<'a> = Result<'a, ValidationError>
+    type IoResult<'a> = AsyncResult<'a, DataRelatedError>

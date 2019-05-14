@@ -6,12 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Country.fs" />
     <Compile Include="CardDomain.fs" />
-    <Compile Include="CardDomainReadModels.fs" />
     <Compile Include="CardActions.fs" />
+    <Compile Include="CardDomainReadModels.fs" />
     <Compile Include="CardDomainCommandModels.fs" />
-    <Compile Include="CardWorkflows.fs" />
+    <Compile Include="CardPipeline.fs" />
   </ItemGroup>
 
   <ItemGroup>

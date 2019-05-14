@@ -1,18 +1,15 @@
 ﻿namespace CardManagement
 
-open CardDomainReadModels
-open CardManagement.Common
-open CardDomainCommandModels
-open CardDomain
-open FsToolkit.ErrorHandling
-
-open Errors
-
-module CardWorkflows =
-    open CardActions
+module CardPipeline =
     open System
+    open CardActions
+    open CardDomainReadModels
+    open CardManagement.Common
+    open CardDomainCommandModels
+    open CardDomain
+    open FsToolkit.ErrorHandling
+    open Errors
 
-    type AsyncResult<'a, 'error> = Async<Result<'a, 'error>>
     type CardNumberString = string
     type GetCard = CardNumberString -> AsyncResult<CardInfoModel, Error>
     type GetCardDetails = CardNumberString -> AsyncResult<CardDetailsModel, Error>
@@ -21,15 +18,15 @@ module CardWorkflows =
     type DeactivateCard = DeactivateCardCommandModel -> AsyncResult<CardInfoModel, Error>
     type SetDailyLimit = SetDailyLimitCardCommandModel -> AsyncResult<CardInfoModel, Error>
 
-    let getCard (getCardFromDbAsync: CardNumber -> AsyncResult<Card, Error>) : GetCard =
+    let getCard (getCardFromDbAsync: CardNumber -> IoResult<Card>) : GetCard =
         fun cardNumber ->
             asyncResult {
                 let! cardNumber = CardNumber.create "cardNumber" cardNumber |> expectValidationError
-                let! card = getCardFromDbAsync cardNumber
+                let! card = getCardFromDbAsync cardNumber |> expectDataRelatedErrorAsync
                 return card |> toCardInfoModel
             }
 
-    let getCardDetails (getCardDetailsAsync: CardNumber -> AsyncResult<CardDetails, DataRelatedError>)
+    let getCardDetails (getCardDetailsAsync: CardNumber -> IoResult<CardDetails>)
         : GetCardDetails =
         fun cardNumber ->
             asyncResult {
@@ -38,19 +35,21 @@ module CardWorkflows =
                 return card |> toCardDetailsModel
             }
 
-    let getUser (getUserAsync: UserId -> AsyncResult<User, Error>) : GetUser =
+    let getUser (getUserAsync: UserId -> IoResult<User>) : GetUser =
         fun userId ->
             asyncResult {
-                let! user = getUserAsync userId
+                let! user =
+                    getUserAsync userId
+                    |> expectDataRelatedErrorAsync
                 return user |> toUserModel
             }
 
     let activateCard
-        (getCardAsync: CardNumber -> AsyncResult<Card, DataRelatedError>)
-        (getCardAccountInfoAsync: CardNumber -> AsyncResult<CardAccountInfo, DataRelatedError>)
+        (getCardAsync: CardNumber -> IoResult<Card>)
+        (getCardAccountInfoAsync: CardNumber -> IoResult<CardAccountInfo>)
         : ActivateCard =
         fun activateCommand ->
-            asyncResult{
+            asyncResult {
                 let! validCommand =
                     activateCommand |> validateActivateCardCommand |> expectValidationError
                 let! card = validCommand.CardNumber |> getCardAsync |> expectDataRelatedErrorAsync
@@ -68,7 +67,7 @@ module CardWorkflows =
             }
 
     let deactivateCard
-        (getCardAsync: CardNumber -> AsyncResult<Card, DataRelatedError>)
+        (getCardAsync: CardNumber -> IoResult<Card>)
         : DeactivateCard =
         fun deactivateCommand ->
             asyncResult {
@@ -83,7 +82,7 @@ module CardWorkflows =
 
     let setDailyLimit
         (currentDate: DateTimeOffset)
-        (getCardFromDbAsync: CardNumber -> AsyncResult<Card, DataRelatedError>)
+        (getCardFromDbAsync: CardNumber -> IoResult<Card>)
         : SetDailyLimit =
             fun setDailyLimitCommand ->
                 asyncResult {
