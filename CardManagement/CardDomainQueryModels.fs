@@ -49,7 +49,7 @@ module CardDomainQueryModels =
               DailyLimit =
                 match card.DailyLimit with
                 | Unlimited -> None
-                | Limit limit -> Some limit
+                | Limit limit -> Some limit.Value
               IsActive = true }
         | Deactivated card ->
             { BasicInfo = card |> toBasicInfoToModel

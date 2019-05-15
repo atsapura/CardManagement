@@ -68,6 +68,8 @@ module CommonTypes =
     type Money = Money of decimal
         with
         member this.Value = match this with Money money -> money
+        static member (+) (Money left, Money right) = left + right |> Money
+        static member (-) (Money left, Money right) = left - right |> Money
 
     type PostalCode = private PostalCode of string
         with

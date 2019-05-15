@@ -21,11 +21,11 @@ module CardDomain =
     [<Struct>]
     type DailyLimit =
         private
-        | Limit of decimal
+        | Limit of Money
         | Unlimited
         with
         static member ofDecimal dec =
-            if dec > 0m then Limit dec
+            if dec > 0m then Money dec |> Limit
             else Unlimited
 
     let (|Limit|Unlimited|) limit =

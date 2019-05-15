@@ -17,6 +17,8 @@ module CardActions =
 
     let private setDailyLimitNotAllowed = operationNotAllowed "Set daily limit"
 
+    let private processPaymentNotAllowed = operationNotAllowed "Process payment"
+
     let isCardExpired (currentDate: DateTimeOffset) card =
         let isExpired = isExpired currentDate
         match card with
@@ -40,14 +42,35 @@ module CardActions =
 
     let setDailyLimit (currentDate: DateTimeOffset) limit card =
         if isCardExpired currentDate card then
-            sprintf "Can't set daily limit. Card %s is expired" card.Number.Value
+            sprintf "Card %s is expired" card.Number.Value
             |> setDailyLimitNotAllowed
         else
         match card with
         | Deactivated _ ->
-            sprintf "Can't set daily limit. Card %s is deactivated" card.Number.Value
+            sprintf "Card %s is deactivated" card.Number.Value
             |> setDailyLimitNotAllowed
         | Active card -> Active { card with DailyLimit = limit } |> Ok
+
+    let processPayment (currentDate: DateTimeOffset) spentToday card paymentAmount =
+        if isCardExpired currentDate card then
+            sprintf "Card %s is expired" card.Number.Value
+            |> processPaymentNotAllowed
+        else
+        match card with
+        | Deactivated _ ->
+            sprintf "Card %s is deactivated" card.Number.Value
+            |> processPaymentNotAllowed
+        | Active card ->
+            if paymentAmount > card.Balance then
+                sprintf "Insufficent funds on card %s" card.BasicInfo.Number.Value
+                |> processPaymentNotAllowed
+            else
+            match card.DailyLimit with
+            | Limit limit when limit < spentToday + paymentAmount ->
+                sprintf "Daily limit is exceeded for card %s" card.BasicInfo.Number.Value
+                |> processPaymentNotAllowed
+            | _ -> ({ card with Balance = card.Balance - paymentAmount } |> Active, spentToday + paymentAmount)
+                   |> Ok
 
     type ActivateCommand = { CardNumber: CardNumber }
 
@@ -56,3 +79,7 @@ module CardActions =
     type SetDailyLimitCommand =
         { CardNumber: CardNumber
           DailyLimit: DailyLimit }
+
+    type ProcessPaymentCommand =
+        { CardNumber: CardNumber
+          PaymentAmount: Money }

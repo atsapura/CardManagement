@@ -18,6 +18,7 @@ module CardPipeline =
     type ActivateCard   = ActivateCardCommandModel      -> PipelineResult<CardInfoModel>
     type DeactivateCard = DeactivateCardCommandModel    -> PipelineResult<CardInfoModel>
     type SetDailyLimit  = SetDailyLimitCardCommandModel -> PipelineResult<CardInfoModel>
+    type ProcessPayment = ProcessPaymentCommandModel    -> PipelineResult<CardInfoModel>
 
     let getCard (getCardFromDbAsync: CardNumber -> IoResult<Card>) : GetCard =
         fun cardNumber ->
@@ -83,17 +84,37 @@ module CardPipeline =
 
     let setDailyLimit
         (currentDate: DateTimeOffset)
-        (getCardFromDbAsync: CardNumber -> IoResult<Card>)
+        (getCardAsync: CardNumber -> IoResult<Card>)
         : SetDailyLimit =
             fun setDailyLimitCommand ->
                 asyncResult {
                     let! validCommand =
                         setDailyLimitCommand |> validateSetDailyLimitCommand |> expectValidationError
                     let! card =
-                        getCardFromDbAsync validCommand.CardNumber
+                        getCardAsync validCommand.CardNumber
                         |> expectDataRelatedErrorAsync
                     let! updatedCard =
                         setDailyLimit currentDate validCommand.DailyLimit card
                         |> expectOperationNotAllowedError
                     return updatedCard |> toCardInfoModel
+                }
+
+    let processPayment
+        (currentDate: DateTimeOffset)
+        (getCardAsync: CardNumber -> IoResult<Card>)
+        (getSpentTodayAsync: CardNumber -> IoResult<Money>)
+        (saveSpentTodayAsync: CardNumber -> Money -> IoResult<unit>)
+        : ProcessPayment =
+            fun processCommand ->
+                asyncResult {
+                    let! validCommand =
+                        processCommand |> validateProcessPaymentCommand |> expectValidationError
+                    let cardNumber = validCommand.CardNumber
+                    let! card = getCardAsync cardNumber |> expectDataRelatedErrorAsync
+                    let! spentToday = getSpentTodayAsync cardNumber |> expectDataRelatedErrorAsync
+                    let! (card, newSpentToday) =
+                        processPayment currentDate spentToday card validCommand.PaymentAmount
+                        |> expectOperationNotAllowedError
+                    do! saveSpentTodayAsync cardNumber newSpentToday |> expectDataRelatedErrorAsync
+                    return card |> toCardInfoModel
                 }
