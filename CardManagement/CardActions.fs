@@ -69,7 +69,7 @@ module CardActions =
             | Limit limit when limit < spentToday + paymentAmount ->
                 sprintf "Daily limit is exceeded for card %s" card.BasicInfo.Number.Value
                 |> processPaymentNotAllowed
-            | _ -> ({ card with Balance = card.Balance - paymentAmount } |> Active, spentToday + paymentAmount)
+            | _ -> (Active { card with Balance = card.Balance - paymentAmount }, spentToday + paymentAmount)
                    |> Ok
 
     type ActivateCommand = { CardNumber: CardNumber }
