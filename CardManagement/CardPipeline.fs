@@ -3,7 +3,7 @@
 module CardPipeline =
     open System
     open CardActions
-    open CardDomainReadModels
+    open CardDomainQueryModels
     open CardManagement.Common
     open CardDomainCommandModels
     open CardDomain
@@ -11,12 +11,13 @@ module CardPipeline =
     open Errors
 
     type CardNumberString = string
-    type GetCard = CardNumberString -> AsyncResult<CardInfoModel, Error>
-    type GetCardDetails = CardNumberString -> AsyncResult<CardDetailsModel, Error>
-    type GetUser = UserId -> AsyncResult<UserModel, Error>
-    type ActivateCard = ActivateCardCommandModel -> AsyncResult<CardInfoModel, Error>
-    type DeactivateCard = DeactivateCardCommandModel -> AsyncResult<CardInfoModel, Error>
-    type SetDailyLimit = SetDailyLimitCardCommandModel -> AsyncResult<CardInfoModel, Error>
+
+    type GetCard        = CardNumberString              -> PipelineResult<CardInfoModel>
+    type GetCardDetails = CardNumberString              -> PipelineResult<CardDetailsModel>
+    type GetUser        = UserId                        -> PipelineResult<UserModel>
+    type ActivateCard   = ActivateCardCommandModel      -> PipelineResult<CardInfoModel>
+    type DeactivateCard = DeactivateCardCommandModel    -> PipelineResult<CardInfoModel>
+    type SetDailyLimit  = SetDailyLimitCardCommandModel -> PipelineResult<CardInfoModel>
 
     let getCard (getCardFromDbAsync: CardNumber -> IoResult<Card>) : GetCard =
         fun cardNumber ->

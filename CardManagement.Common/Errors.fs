@@ -7,7 +7,9 @@ module Errors =
         { FieldPath: string
           Message: string }
 
-    type OperationNotAllowedError = OperationNotAllowedError of string
+    type OperationNotAllowedError =
+        { Operation: string
+          Reason: string }
 
     type DataRelatedError =
         | EntityNotFound of entityName: string * id: string
@@ -25,7 +27,7 @@ module Errors =
 
     let bug exc = Bug exc |> Error
 
-    let operationNotAllowed message = OperationNotAllowedError message |> Error
+    let operationNotAllowed operation reason = { Operation = operation; Reason = reason } |> Error
 
     let notFound name id = EntityNotFound (name, id) |> Error
 
@@ -49,3 +51,4 @@ module Errors =
     type AsyncResult<'a, 'error> = Async<Result<'a, 'error>>
     type ValidationResult<'a> = Result<'a, ValidationError>
     type IoResult<'a> = AsyncResult<'a, DataRelatedError>
+    type PipelineResult<'a> = AsyncResult<'a, Error>

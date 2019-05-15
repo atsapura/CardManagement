@@ -1,6 +1,6 @@
 ﻿namespace CardManagement
 
-module CardDomainReadModels =
+module CardDomainQueryModels =
     open System
     open CardDomain
     open CardManagement.Common

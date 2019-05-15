@@ -49,6 +49,11 @@ module CardDomain =
     type Card =
         | Active of CardInfo
         | Deactivated of BasicCardInfo
+        with
+        member this.Number =
+            match this with
+            | Active card -> card.BasicInfo.Number
+            | Deactivated card -> card.Number
 
     type CardDetails =
         { Card: Card 

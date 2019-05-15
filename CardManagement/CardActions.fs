@@ -15,6 +15,8 @@ module CardActions =
     let private isExpired (currentDate: DateTimeOffset) (month: Month, year: Year) =
         (int year.Value, month.toNumber() |> int) > (currentDate.Year, currentDate.Month)
 
+    let private setDailyLimitNotAllowed = operationNotAllowed "Set daily limit"
+
     let isCardExpired (currentDate: DateTimeOffset) card =
         let isExpired = isExpired currentDate
         match card with
@@ -38,10 +40,13 @@ module CardActions =
 
     let setDailyLimit (currentDate: DateTimeOffset) limit card =
         if isCardExpired currentDate card then
-            operationNotAllowed "Card is expired"
+            sprintf "Can't set daily limit. Card %s is expired" card.Number.Value
+            |> setDailyLimitNotAllowed
         else
         match card with
-        | Deactivated _ -> operationNotAllowed "Card deactivated"
+        | Deactivated _ ->
+            sprintf "Can't set daily limit. Card %s is deactivated" card.Number.Value
+            |> setDailyLimitNotAllowed
         | Active card -> Active { card with DailyLimit = limit } |> Ok
 
     type ActivateCommand = { CardNumber: CardNumber }
