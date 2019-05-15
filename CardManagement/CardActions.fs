@@ -19,6 +19,12 @@ module CardActions =
 
     let private processPaymentNotAllowed = operationNotAllowed "Process payment"
 
+    let private cardExpiredMessage (cardNumber: CardNumber) =
+        sprintf "Card %s is expired" cardNumber.Value
+
+    let private cardDeactivatedMessage (cardNumber: CardNumber) =
+        sprintf "Card %s is deactivated" cardNumber.Value
+
     let isCardExpired (currentDate: DateTimeOffset) card =
         let isExpired = isExpired currentDate
         match card with
@@ -42,24 +48,18 @@ module CardActions =
 
     let setDailyLimit (currentDate: DateTimeOffset) limit card =
         if isCardExpired currentDate card then
-            sprintf "Card %s is expired" card.Number.Value
-            |> setDailyLimitNotAllowed
+            cardExpiredMessage card.Number |> setDailyLimitNotAllowed
         else
         match card with
-        | Deactivated _ ->
-            sprintf "Card %s is deactivated" card.Number.Value
-            |> setDailyLimitNotAllowed
+        | Deactivated _ -> cardDeactivatedMessage card.Number |> setDailyLimitNotAllowed
         | Active card -> Active { card with DailyLimit = limit } |> Ok
 
     let processPayment (currentDate: DateTimeOffset) spentToday card paymentAmount =
         if isCardExpired currentDate card then
-            sprintf "Card %s is expired" card.Number.Value
-            |> processPaymentNotAllowed
+            cardExpiredMessage card.Number |> processPaymentNotAllowed
         else
         match card with
-        | Deactivated _ ->
-            sprintf "Card %s is deactivated" card.Number.Value
-            |> processPaymentNotAllowed
+        | Deactivated _ -> cardDeactivatedMessage card.Number |> processPaymentNotAllowed
         | Active card ->
             if paymentAmount > card.Balance then
                 sprintf "Insufficent funds on card %s" card.BasicInfo.Number.Value
