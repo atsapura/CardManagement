@@ -1,5 +1,15 @@
 ﻿namespace CardManagement
 
+(*
+Finally, this module is about composition of everything we implemented before.
+Every public function here is responsible for creation of 1 pipeline.
+And again, nothing else but composing is going on here.
+Bonus is that unlike in C# or Java, you don't compose objects here,
+you compose functions, which is very easy. So you don't need a DI framework for that,
+everything here is 100% your code which is easy to navigate. And you don't
+deal here with dull interfaces like `ICardService` which have 1 implementation and 1 purpose:
+make it possible to test your code.
+*)
 module CardPipeline =
     open System
     open CardActions
@@ -12,6 +22,15 @@ module CardPipeline =
 
     type CardNumberString = string
 
+    (*
+    PipelineResult<'T> is an alias for Async<Result<'T, Error>> which explicitly tells us
+    that every pipeline is asynchronous and it may succeed or it may not. If not, you'll get
+    an `Error`, which can be either a `ValidationError` or `OperationNotAllowedError`
+    or `DataRelatedError` or `Bug of Exception` which means that if it's not one of previous errors,
+    we missed something and something's gone bad.
+    Unlike with exceptions, you can see everything you need in your function signature,
+    which gives you real encapsulation.
+    *)
     type GetCard        = CardNumberString              -> PipelineResult<CardInfoModel>
     type GetCardDetails = CardNumberString              -> PipelineResult<CardDetailsModel>
     type GetUser        = UserId                        -> PipelineResult<UserModel>
@@ -20,11 +39,16 @@ module CardPipeline =
     type SetDailyLimit  = SetDailyLimitCardCommandModel -> PipelineResult<CardInfoModel>
     type ProcessPayment = ProcessPaymentCommandModel    -> PipelineResult<CardInfoModel>
 
-    let getCard (getCardFromDbAsync: CardNumber -> IoResult<Card>) : GetCard =
+    let getCard (getCardAsync: CardNumber -> IoResult<Card>) : GetCard =
         fun cardNumber ->
             asyncResult {
+                // let! is like `await` in C#, but more powerful: when `await` basically works only with `Task`,
+                // "let!" works the same way with everything you make it work: `Result`, `Async`, `Task`, `AsyncResult` etc.
                 let! cardNumber = CardNumber.create "cardNumber" cardNumber |> expectValidationError
-                let! card = getCardFromDbAsync cardNumber |> expectDataRelatedErrorAsync
+                // those functions `expectValidationError` and `expectDataRelatedErrorAsync`
+                // map specific error types like `ValidationError` to on final `Error`, otherwise code won't compile.
+                // they also tell you what kind of error you should expect on every step. Nice!
+                let! card = getCardAsync cardNumber |> expectDataRelatedErrorAsync
                 return card |> toCardInfoModel
             }
 
@@ -56,7 +80,7 @@ module CardPipeline =
                     activateCommand |> validateActivateCardCommand |> expectValidationError
                 let! card = validCommand.CardNumber |> getCardAsync |> expectDataRelatedErrorAsync
                 let! activeCard =
-                    match card.Status with
+                    match card.AccountDetails with
                     | Active _ -> card |> AsyncResult.retn
                     | Deactivated ->
                         asyncResult {

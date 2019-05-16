@@ -1,5 +1,11 @@
 ﻿namespace CardManagement
 
+(*
+This module contains mappings of our domain types to something that user/client will see.
+Since JSON and a lot of popular languages now do not support Discriminated Unions, which
+we heavily use in our domain, we have to convert our domain types to something, represented
+by common types.
+*)
 module CardDomainQueryModels =
     open System
     open CardDomain
@@ -42,7 +48,7 @@ module CardDomainQueryModels =
           ExpirationYear = (snd basicCard.Expiration).Value }
 
     let toCardInfoModel card =
-        match card.Status with
+        match card.AccountDetails with
         | Active accInfo ->
             { BasicInfo = card |> toBasicInfoToModel
               Balance = accInfo.Balance.Value |> Some
