@@ -57,17 +57,6 @@ module CardActions =
                 sprintf "Daily limit is exceeded for card %s" card.Number.Value
                 |> processPaymentNotAllowed
             | Limit _ | Unlimited ->
-                ({ card with Status = Active {accInfo with Balance = accInfo.Balance - paymentAmount } }, spentToday + paymentAmount)
-                |> Ok
-
-    type ActivateCommand = { CardNumber: CardNumber }
-
-    type DeactivateCommand = { CardNumber: CardNumber }
-
-    type SetDailyLimitCommand =
-        { CardNumber: CardNumber
-          DailyLimit: DailyLimit }
-
-    type ProcessPaymentCommand =
-        { CardNumber: CardNumber
-          PaymentAmount: Money }
+                let updatedCard = { card with Status = Active { accInfo with Balance = accInfo.Balance - paymentAmount } }
+                let updatedSpentToday = spentToday + paymentAmount
+                Ok (updatedCard, updatedSpentToday)

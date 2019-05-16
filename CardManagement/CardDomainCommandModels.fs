@@ -7,6 +7,19 @@ open FsToolkit.ErrorHandling
 
 module CardDomainCommandModels =
     open CardManagement.Common
+    
+
+    type ActivateCommand = { CardNumber: CardNumber }
+
+    type DeactivateCommand = { CardNumber: CardNumber }
+
+    type SetDailyLimitCommand =
+        { CardNumber: CardNumber
+          DailyLimit: DailyLimit }
+
+    type ProcessPaymentCommand =
+        { CardNumber: CardNumber
+          PaymentAmount: Money }
 
     type ActivateCardCommandModel =
         { UserId: UserId
