@@ -33,27 +33,22 @@ module CardDomain =
         | Limit dec -> Limit dec
         | Unlimited -> Unlimited
 
-    type BasicCardInfo =
-        { Number: CardNumber
-          Name: LetterString
-          Expiration: (Month*Year) }
-
     type UserId = System.Guid
 
-    type CardInfo =
-        { BasicInfo: BasicCardInfo
+    type AccountInfo =
+        { Holder: UserId
           Balance: Money
-          DailyLimit: DailyLimit
-          Holder: UserId }
+          DailyLimit: DailyLimit }
+
+    type CardStatus =
+        | Active of AccountInfo
+        | Deactivated
 
     type Card =
-        | Active of CardInfo
-        | Deactivated of BasicCardInfo
-        with
-        member this.Number =
-            match this with
-            | Active card -> card.BasicInfo.Number
-            | Deactivated card -> card.Number
+        { Number: CardNumber
+          Name: LetterString
+          Expiration: (Month * Year)
+          Status: CardStatus }
 
     type CardDetails =
         { Card: Card 

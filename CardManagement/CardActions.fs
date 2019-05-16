@@ -7,11 +7,6 @@ module CardActions =
     open CardManagement.Common.Errors
     open CardManagement.Common
 
-    type CardAccountInfo =
-        { UserId: UserId
-          Balance: Money
-          DailyLimit: DailyLimit }
-
     let private isExpired (currentDate: DateTimeOffset) (month: Month, year: Year) =
         (int year.Value, month.toNumber() |> int) < (currentDate.Year, currentDate.Month)
 
@@ -26,51 +21,43 @@ module CardActions =
         sprintf "Card %s is deactivated" cardNumber.Value
 
     let isCardExpired (currentDate: DateTimeOffset) card =
-        let isExpired = isExpired currentDate
-        match card with
-        | Deactivated card -> isExpired card.Expiration
-        | Active card -> isExpired card.BasicInfo.Expiration
+        isExpired currentDate card.Expiration
 
     let deactivate card =
-        match card with
-        | Deactivated _ -> card
-        | Active card -> card.BasicInfo |> Deactivated
+        match card.Status with
+        | Deactivated -> card
+        | Active _ -> { card with Status = Deactivated }
 
-    let activate (cardAccountInfo: CardAccountInfo) card =
-        match card with
+    let activate (cardAccountInfo: AccountInfo) card =
+        match card.Status with
         | Active _ -> card
-        | Deactivated bacisInfo ->
-            { BasicInfo = bacisInfo
-              DailyLimit = cardAccountInfo.DailyLimit
-              Balance = cardAccountInfo.Balance
-              Holder = cardAccountInfo.UserId }
-            |> Active
+        | Deactivated -> { card with Status = Active cardAccountInfo }
 
     let setDailyLimit (currentDate: DateTimeOffset) limit card =
         if isCardExpired currentDate card then
             cardExpiredMessage card.Number |> setDailyLimitNotAllowed
         else
-        match card with
-        | Deactivated _ -> cardDeactivatedMessage card.Number |> setDailyLimitNotAllowed
-        | Active card -> Active { card with DailyLimit = limit } |> Ok
+        match card.Status with
+        | Deactivated -> cardDeactivatedMessage card.Number |> setDailyLimitNotAllowed
+        | Active accInfo -> { card with Status = Active { accInfo with DailyLimit = limit } } |> Ok
 
     let processPayment (currentDate: DateTimeOffset) spentToday card paymentAmount =
         if isCardExpired currentDate card then
             cardExpiredMessage card.Number |> processPaymentNotAllowed
         else
-        match card with
-        | Deactivated _ -> cardDeactivatedMessage card.Number |> processPaymentNotAllowed
-        | Active card ->
-            if paymentAmount > card.Balance then
-                sprintf "Insufficent funds on card %s" card.BasicInfo.Number.Value
+        match card.Status with
+        | Deactivated -> cardDeactivatedMessage card.Number |> processPaymentNotAllowed
+        | Active accInfo ->
+            if paymentAmount > accInfo.Balance then
+                sprintf "Insufficent funds on card %s" card.Number.Value
                 |> processPaymentNotAllowed
             else
-            match card.DailyLimit with
+            match accInfo.DailyLimit with
             | Limit limit when limit < spentToday + paymentAmount ->
-                sprintf "Daily limit is exceeded for card %s" card.BasicInfo.Number.Value
+                sprintf "Daily limit is exceeded for card %s" card.Number.Value
                 |> processPaymentNotAllowed
             | Limit _ | Unlimited ->
-                (Active { card with Balance = card.Balance - paymentAmount }, spentToday + paymentAmount)
+                ({ card with Status = Active {accInfo with Balance = accInfo.Balance - paymentAmount } }, spentToday + paymentAmount)
                 |> Ok
 
     type ActivateCommand = { CardNumber: CardNumber }

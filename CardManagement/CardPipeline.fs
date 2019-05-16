@@ -48,7 +48,7 @@ module CardPipeline =
 
     let activateCard
         (getCardAsync: CardNumber -> IoResult<Card>)
-        (getCardAccountInfoAsync: CardNumber -> IoResult<CardAccountInfo>)
+        (getCardAccountInfoAsync: CardNumber -> IoResult<AccountInfo>)
         : ActivateCard =
         fun activateCommand ->
             asyncResult {
@@ -56,9 +56,9 @@ module CardPipeline =
                     activateCommand |> validateActivateCardCommand |> expectValidationError
                 let! card = validCommand.CardNumber |> getCardAsync |> expectDataRelatedErrorAsync
                 let! activeCard =
-                    match card with
+                    match card.Status with
                     | Active _ -> card |> AsyncResult.retn
-                    | Deactivated _ ->
+                    | Deactivated ->
                         asyncResult {
                             let! cardAccountInfo =
                                 getCardAccountInfoAsync validCommand.CardNumber

@@ -35,23 +35,23 @@ module CardDomainQueryModels =
           Address: AddressModel
           Cards: CardInfoModel list }
 
-    let toBasicInfoToModel (basicCard: BasicCardInfo) =
+    let toBasicInfoToModel (basicCard: Card) =
         { Number = basicCard.Number.Value
           Name = basicCard.Name.Value
           ExpirationMonth = (fst basicCard.Expiration).toNumber()
           ExpirationYear = (snd basicCard.Expiration).Value }
 
     let toCardInfoModel card =
-        match card with
-        | Active card ->
-            { BasicInfo = card.BasicInfo |> toBasicInfoToModel
-              Balance = card.Balance.Value |> Some
+        match card.Status with
+        | Active accInfo ->
+            { BasicInfo = card |> toBasicInfoToModel
+              Balance = accInfo.Balance.Value |> Some
               DailyLimit =
-                match card.DailyLimit with
+                match accInfo.DailyLimit with
                 | Unlimited -> None
                 | Limit limit -> Some limit.Value
               IsActive = true }
-        | Deactivated card ->
+        | Deactivated ->
             { BasicInfo = card |> toBasicInfoToModel
               Balance = None
               DailyLimit = None
