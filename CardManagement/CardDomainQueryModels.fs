@@ -3,7 +3,7 @@
 (*
 This module contains mappings of our domain types to something that user/client will see.
 Since JSON and a lot of popular languages now do not support Discriminated Unions, which
-we heavily use in our domain, we have to convert our domain types to something, represented
+we heavily use in our domain, we have to convert our domain types to something represented
 by common types.
 *)
 module CardDomainQueryModels =
@@ -48,20 +48,15 @@ module CardDomainQueryModels =
           ExpirationYear = (snd basicCard.Expiration).Value }
 
     let toCardInfoModel card =
-        match card.AccountDetails with
-        | Active accInfo ->
-            { BasicInfo = card |> toBasicInfoToModel
-              Balance = accInfo.Balance.Value |> Some
-              DailyLimit =
-                match accInfo.DailyLimit with
-                | Unlimited -> None
-                | Limit limit -> Some limit.Value
-              IsActive = true }
-        | Deactivated ->
-            { BasicInfo = card |> toBasicInfoToModel
-              Balance = None
-              DailyLimit = None
-              IsActive = false }
+        let (balance, dailyLimit, isActive) =
+            match card.AccountDetails with
+            | Active accInfo ->
+                (accInfo.Balance.Value |> Some, accInfo.DailyLimit.ToDecimalOption(), true)
+            | Deactivated -> (None, None, false)
+        { BasicInfo = card |> toBasicInfoToModel
+          Balance = balance
+          DailyLimit = dailyLimit
+          IsActive = isActive }
 
     let toAddressModel (address: Address) =
         { Country = address.Country.ToString()

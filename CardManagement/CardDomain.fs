@@ -51,7 +51,17 @@ module CardDomain =
         static member ofDecimal dec =
             if dec > 0m then Money dec |> Limit
             else Unlimited
+        member this.ToDecimalOption() =
+            match this with
+            | Unlimited -> None
+            | Limit limit -> Some limit.Value
 
+    (*
+    Since we made our constructor private, we can't pattern match it directly from outside,
+    so we expose this Active Pattern to be able to see what's inside, but without a possibility
+    of direct creation of this type.
+    In a nutshell it's sort of `{ get; private set; }` for the whole type.
+    *)
     let (|Limit|Unlimited|) limit =
         match limit with
         | Limit dec -> Limit dec
@@ -76,7 +86,7 @@ module CardDomain =
         | Deactivated
 
     (*
-    We could use `DateTime` type to represent expiration date. But `DateTime` contains way
+    We could use `DateTime` type to represent an expiration date. But `DateTime` contains way
     more information then we need. Which would rise a lot of questions:
     - What do we do with the time?
     - What about timezone?

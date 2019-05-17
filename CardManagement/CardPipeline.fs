@@ -39,12 +39,17 @@ module CardPipeline =
     type SetDailyLimit  = SetDailyLimitCardCommandModel -> PipelineResult<CardInfoModel>
     type ProcessPayment = ProcessPaymentCommandModel    -> PipelineResult<CardInfoModel>
 
+    (*
+    IoResult<'T> however tells us that the only expectable error here is `DataRelatedError`.
+    So there's no validation going on there nor there's a business logic.
+    *)
     let getCard (getCardAsync: CardNumber -> IoResult<Card>) : GetCard =
         fun cardNumber ->
             asyncResult {
                 // let! is like `await` in C#, but more powerful: when `await` basically works only with `Task`,
                 // "let!" works the same way with everything you make it work: `Result`, `Async`, `Task`, `AsyncResult` etc.
                 let! cardNumber = CardNumber.create "cardNumber" cardNumber |> expectValidationError
+
                 // those functions `expectValidationError` and `expectDataRelatedErrorAsync`
                 // map specific error types like `ValidationError` to on final `Error`, otherwise code won't compile.
                 // they also tell you what kind of error you should expect on every step. Nice!
