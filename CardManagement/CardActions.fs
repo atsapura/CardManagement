@@ -65,6 +65,13 @@ module CardActions =
             | Limit limit when limit < spentToday + paymentAmount ->
                 sprintf "Daily limit is exceeded for card %s" card.Number.Value
                 |> processPaymentNotAllowed
+            (*
+            We could use here the ultimate wild card case like this:
+            | _ ->
+            but it's dangerous because if a new case appears in `DailyLimit` type,
+            we won't get a compile error here, which would remind us to process this
+            new case in here. So this is a safe way to do the same thing.
+            *)
             | Limit _ | Unlimited ->
                 let updatedCard = { card with AccountDetails = Active { accInfo with Balance = accInfo.Balance - paymentAmount } }
                 let updatedSpentToday = spentToday + paymentAmount
