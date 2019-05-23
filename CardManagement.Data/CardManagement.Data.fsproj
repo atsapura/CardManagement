@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="CardDomainEntities.fs" />
+    <Compile Include="EntityToDomainMapping.fs" />
+    <Compile Include="DomainToEntityMapping.fs" />
+    <Compile Include="CardMongoConfiguration.fs" />
+    <Compile Include="QueryRepository.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MongoDB.Driver" Version="2.8.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CardManagement.Common\CardManagement.Common.fsproj" />
+    <ProjectReference Include="..\CardManagement\CardManagement.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="4.6.2" />
+  </ItemGroup>
+
+</Project>

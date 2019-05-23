@@ -15,7 +15,7 @@ module CommonTypes =
     type Month =
         | January | February | March | April | May | June | July | August | September | October | November | December
         with
-        member this.toNumber() =
+        member this.ToNumber() =
             match this with
             | January -> 1us
             | February -> 2us
@@ -54,7 +54,7 @@ module CommonTypes =
             else validationError field "Year must be between 2019 and 2050"
 
 
-    type LetterString = LetterString of string
+    type LetterString = private LetterString of string
         with
         member this.Value = match this with LetterString s -> s
         static member create field str =
@@ -88,3 +88,5 @@ module CommonTypes =
           PostalCode: PostalCode
           AddressLine1: string
           AddressLine2: string }
+
+    type nil<'a when 'a: struct and 'a: (new: unit-> 'a) and 'a:> System.ValueType> = System.Nullable<'a>

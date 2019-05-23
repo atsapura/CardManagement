@@ -6,8 +6,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Country.fs" />
+    <Compile Include="Common.fs" />
     <Compile Include="Errors.fs" />
+    <Compile Include="Country.fs" />
     <Compile Include="CommonTypes.fs" />
   </ItemGroup>
 

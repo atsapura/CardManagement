@@ -38,17 +38,26 @@ module Errors =
         | Exc of Exception
         | PanicMessage of message: string * source: string
 
+    type InvalidDbDataError =
+        { EntityName: string
+          EntityId: string
+          Message: string }
+
     type DataRelatedError =
         | EntityNotFound of entityName: string * id: string
         | EntityIsInUse of entityName: string
         | UpdateError of entityName:string * message:string
-        | Panic of Panic
+        | InvalidDbData of InvalidDbDataError
+
+    type Bug =
+        | Exn of Exception
+        | InvalidDbDataError of InvalidDbDataError
 
     type Error =
         | ValidationError of ValidationError
         | OperationNotAllowed of OperationNotAllowedError
         | DataError of DataRelatedError
-        | Bug of Panic
+        | Bug of Bug
 
     let validationError fieldPath message = { FieldPath = fieldPath; Message = message } |> Error
 
@@ -66,7 +75,7 @@ module Errors =
 
     let expectDataRelatedError result =
         match result with
-        | Error (Panic ex) -> Bug ex |> Error
+        | Error (InvalidDbData err) -> InvalidDbDataError err |> Bug |> Error
         | result -> Result.mapError DataError result
 
     let expectDataRelatedErrorAsync asyncResult =
@@ -84,3 +93,18 @@ module Errors =
     type ValidationResult<'a> = Result<'a, ValidationError>
     type IoResult<'a> = AsyncResult<'a, DataRelatedError>
     type PipelineResult<'a> = AsyncResult<'a, Error>
+
+[<RequireQualifiedAccess>]
+module Result =
+
+    let combine results =
+        let rec loop acc results =
+            match results with
+            | [] -> acc
+            | result :: tail ->
+                match result with
+                | Error e -> Error e
+                | Ok ok ->
+                    let acc = Result.map (fun oks -> ok :: oks) acc
+                    loop acc tail
+        loop (Ok []) results

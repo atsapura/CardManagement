@@ -1,5 +1,10 @@
 ﻿namespace CardManagement.Common
 
+[<AutoOpen>]
+module CountryModule =
+    open Microsoft.FSharp.Reflection
+    open Errors
+
     type Country =
         | Afghanistan
         | Albania
@@ -197,3 +202,20 @@
         | Yemen
         | Zambia
         | Zimbabwe
+
+    let (=~) str1 str2 = System.String.Equals(str1, str2, System.StringComparison.InvariantCultureIgnoreCase)
+
+    let tryParseEmptyDUCase<'DU> str =
+        if FSharpType.IsUnion typeof<'DU> |> not then None
+        else
+        match str with
+        | null | "" -> None
+        | str ->
+            FSharpType.GetUnionCases typeof<'DU>
+            |> Array.tryFind (fun c -> c.Name =~ str && (c.GetFields() |> Array.isEmpty))
+            |> Option.map (fun case -> FSharpValue.MakeUnion(case, [||]) :?> 'DU)
+
+    let parseCountry country =
+        match tryParseEmptyDUCase<Country> country with
+        | Some country -> Ok country
+        | None -> Error { FieldPath = "country"; Message = sprintf "Country %s is unknown" country}

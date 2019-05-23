@@ -96,16 +96,18 @@ module CardDomain =
     type Card =
         { Number: CardNumber
           Name: LetterString
+          HolderId: UserId
           Expiration: (Month * Year)
           AccountDetails: CardAccountDetails }
 
     type CardDetails =
         { Card: Card 
           HolderAddress: Address
+          HolderId: UserId
           HolderName: LetterString }
 
     type User =
         { Name: LetterString
           Id: UserId
           Address: Address
-          Cards: Card list }
+          Cards: Card Set }
