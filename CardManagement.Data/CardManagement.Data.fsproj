@@ -10,6 +10,8 @@
     <Compile Include="DomainToEntityMapping.fs" />
     <Compile Include="CardMongoConfiguration.fs" />
     <Compile Include="QueryRepository.fs" />
+    <Compile Include="CommandRepository.fs" />
+    <Compile Include="CardDataPipeline.fs" />
   </ItemGroup>
 
   <ItemGroup>

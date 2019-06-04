@@ -8,30 +8,30 @@ module QueryRepository =
     open CardDomainEntities
     open MongoDB.Driver
     open MongoDB.Driver.Linq
+    open CardMongoConfiguration
 
-    type MongoDb = IMongoDatabase
+    type IoQueryResult<'a> = Async<'a option>
 
-    let [<Literal>] private card = "Card"
-    let [<Literal>] private user = "User"
-    let [<Literal>] private cardAccountInfo = "cardAccountInfo"
+    type GetCardAsync = MongoDb -> CardNumber -> IoQueryResult<(CardEntity * CardAccountInfoEntity)>
+    type GetUserAsync = MongoDb -> UserId -> IoQueryResult<UserEntity>
+    type GetUserCardsAsync = MongoDb -> UserId -> Async<(CardEntity * CardAccountInfoEntity) list>
 
-    type CardNumber = string
-
-    type GetCardAsync = MongoDb -> CardNumber -> IoResult<(CardEntity * CardAccountInfoEntity)>
-    type GetUserAsync = MongoDb -> UserId -> IoResult<UserEntity>
-
-    let private wrapQuery dbQuery entityName id =
+    let private runSingleQuery dbQuery id =
         async {
             let! result = dbQuery id |> Async.AwaitTask
-            return
-                if result |> isNullUnsafe then id.ToString() |> notFound entityName
-                else Ok result
+            return unsafeNullToOption result
+        }
+
+    let private runListQuery (dbQuery: 'a -> IMongoQueryable<_>) arg =
+        async {
+            let! result = (dbQuery arg).ToListAsync() |> Async.AwaitTask
+            return result |> List.ofSeq
         }
 
     let private getCardQuery (mongoDb: MongoDb) cardnumber =
         query {
-            for cardEntity in mongoDb.GetCollection<CardEntity>(card).AsQueryable() do
-                join accountInfo in mongoDb.GetCollection<CardAccountInfoEntity>(cardAccountInfo).AsQueryable()
+            for cardEntity in mongoDb.GetCollection<CardEntity>(cardCollection).AsQueryable() do
+                join accountInfo in mongoDb.GetCollection<CardAccountInfoEntity>(cardAccountInfoCollection).AsQueryable()
                     on (cardEntity.CardNumber = accountInfo.CardNumber)
                 where (cardEntity.CardNumber = cardnumber)
                 select (cardEntity, accountInfo)
@@ -44,15 +44,29 @@ module QueryRepository =
     let getCardAsync : GetCardAsync =
         fun mongoDb cardNumber ->
             let query = getCardCall mongoDb
-            wrapQuery query card cardNumber
+            runSingleQuery query cardNumber
 
     let private getUserCall (mongoDb: MongoDb) userId =
-        mongoDb.GetCollection<UserEntity>(user)
+        mongoDb.GetCollection<UserEntity>(userCollection)
             .Find(fun u -> u.UserId = userId)
             .FirstOrDefaultAsync()
 
-    let getUserAsync : GetUserAsync =
+    let getUserInfoAsync : GetUserAsync =
         fun mongoDb userId ->
             let query = getUserCall mongoDb
-            wrapQuery query user userId
+            runSingleQuery query userId
+
+    let private getUserCardsQuery (mongoDb: MongoDb) userId =
+        query {
+            for cardEntity in mongoDb.GetCollection<CardEntity>(cardCollection).AsQueryable() do
+                join accountInfo in mongoDb.GetCollection<CardAccountInfoEntity>(cardAccountInfoCollection).AsQueryable()
+                    on (cardEntity.CardNumber = accountInfo.CardNumber)
+                where (cardEntity.UserId = userId)
+                select (cardEntity, accountInfo)
+        } :?> IMongoQueryable<(CardEntity * CardAccountInfoEntity)>
+
+    let getUserCardsAsync : GetUserCardsAsync =
+        fun mongoDb userId ->
+            let query = getUserCardsQuery mongoDb
+            runListQuery query userId
 

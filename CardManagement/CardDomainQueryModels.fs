@@ -71,7 +71,7 @@ module CardDomainQueryModels =
           HolderAddress = cardDetails.HolderAddress |> toAddressModel }
 
     let toUserModel (user: User) =
-        { Id = user.Id
-          Name = user.Name.Value
-          Address = user.Address |> toAddressModel
+        { Id = user.UserInfo.Id
+          Name = user.UserInfo.Name.Value
+          Address = user.UserInfo.Address |> toAddressModel
           Cards = Set.toList user.Cards |> List.map toCardInfoModel }

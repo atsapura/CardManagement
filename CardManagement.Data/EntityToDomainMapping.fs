@@ -54,18 +54,29 @@ module EntityToDomainMapping =
 
     let mapAddressEntity entity : Result<Address, InvalidDbDataError>=
         validateAddressEntity entity
-        |> Result.mapError (mapValidationError "address" (entity.Id.ToString()))
+        |> Result.mapError (mapValidationError "address" (entity |> sprintf "%A"))
+
+    let private validateUserInfoEntity (entity: UserEntity) : Result<UserInfo, ValidationError> =
+        result {            
+            let! name = LetterString.create "name" entity.Name
+            let! address = validateAddressEntity entity.Address
+            return
+                { Id = entity.UserId
+                  Name = name
+                  Address = address}
+        }
+
+    let mapUserInfoEntity (entity: UserEntity) : Result<UserInfo, InvalidDbDataError> =
+        validateUserInfoEntity entity
+        |> Result.mapError (mapValidationError "user" <| entityId entity)
 
     let mapUserEntity (entity: UserEntity) (cardEntities: (CardEntity * CardAccountInfoEntity) list)
         : Result<User, InvalidDbDataError> =
         result {
-            let! name = LetterString.create "name" entity.Name
-            let! address = validateAddressEntity entity.Address
+            let! userInfo = validateUserInfoEntity entity
             let! cards = List.map validateCardEntity cardEntities |> Result.combine
 
             return
-                { Id = entity.UserId
-                  Name = name
-                  Address = address
+                { UserInfo = userInfo
                   Cards = cards |> Set.ofList }
-        } |> Result.mapError (mapValidationError "user" <| entity.UserId.ToString())
+        } |> Result.mapError (mapValidationError "user" <| entityId entity)

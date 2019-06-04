@@ -81,7 +81,7 @@ module CardDomain =
     so we just don't provide this information when the card isn't active.
     Now this important business rule can't be violated by accident.
     *)
-    type CardAccountDetails =
+    type CardAccountInfo =
         | Active of AccountInfo
         | Deactivated
 
@@ -98,7 +98,7 @@ module CardDomain =
           Name: LetterString
           HolderId: UserId
           Expiration: (Month * Year)
-          AccountDetails: CardAccountDetails }
+          AccountDetails: CardAccountInfo }
 
     type CardDetails =
         { Card: Card 
@@ -106,8 +106,10 @@ module CardDomain =
           HolderId: UserId
           HolderName: LetterString }
 
-    type User =
+    type UserInfo =
         { Name: LetterString
           Id: UserId
-          Address: Address
+          Address: Address }
+    type User =
+        { UserInfo : UserInfo
           Cards: Card Set }

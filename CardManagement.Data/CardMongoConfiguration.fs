@@ -21,3 +21,15 @@ module CardMongoConfiguration =
     let getDatabase (config: MongoSettings) =
         let client = createClient config.ConnectionString
         client.GetDatabase(config.Database)
+
+    let getSession (config: MongoSettings) =
+        let client = createClient config.ConnectionString
+        client.StartSession()
+
+    type MongoDb = IMongoDatabase
+
+    let [<Literal>] internal cardCollection = "Card"
+    let [<Literal>] internal userCollection = "User"
+    let [<Literal>] internal cardAccountInfoCollection = "cardAccountInfo"
+
+    type CardNumber = string

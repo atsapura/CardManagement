@@ -44,6 +44,7 @@ module Errors =
           Message: string }
 
     type DataRelatedError =
+        | EntityAlreadyExists of entityName: string * id: string
         | EntityNotFound of entityName: string * id: string
         | EntityIsInUse of entityName: string
         | UpdateError of entityName:string * message:string
