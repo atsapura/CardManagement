@@ -58,18 +58,17 @@ module CardDataPipeline =
                 | Error e -> Error e |> async.Return
                 | Ok (Some userInfo) ->
                     async {
-                        let! cardList =
-                            QueryRepository.getUserCardsAsync mongoDb userId
-                        let user = 
+                        let! cardList = QueryRepository.getUserCardsAsync mongoDb userId
+                        let user =
                             result {
                                 let! cards =
-                                    List.map (EntityToDomainMapping.mapCardEntity >> Result.mapError InvalidDbData) cardList
+                                    List.map EntityToDomainMapping.mapCardEntity cardList
                                     |> Result.combine
                                 return
                                     { UserInfo = userInfo
                                       Cards = cards |> Set.ofList }
                                     |> Some
-                            }
+                            } |> Result.mapError InvalidDbData
                         return user
                     }
         }
