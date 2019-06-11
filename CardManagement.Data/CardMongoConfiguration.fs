@@ -32,4 +32,4 @@ module CardMongoConfiguration =
     let [<Literal>] internal userCollection = "User"
     let [<Literal>] internal cardAccountInfoCollection = "cardAccountInfo"
 
-    type CardNumber = string
+    type CardNumberString = string

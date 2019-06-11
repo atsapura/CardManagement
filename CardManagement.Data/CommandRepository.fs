@@ -4,11 +4,9 @@ module CommandRepository =
     open CardMongoConfiguration
     open CardDomainEntities
     open System
-    open System.Threading
     open MongoDB.Driver
     open System.Threading.Tasks
     open FsToolkit.ErrorHandling
-    open MongoDB.Driver
     open System.Linq.Expressions
 
     type CreateUserAsync = UserEntity -> IoResult<unit>
@@ -51,14 +49,14 @@ module CommandRepository =
 
     let createUserAsync (mongoDb : MongoDb) : CreateUserAsync =
         fun userEntity ->
-        let insertUser = mongoDb.GetCollection<UserEntity>(userCollection).InsertOneAsync >> Async.AwaitTask
+        let insertUser = mongoDb.GetCollection(userCollection).InsertOneAsync >> Async.AwaitTask
         userEntity |> executeInsertAsync insertUser
 
     let createCardAsync (mongoDb: MongoDb) : CreateCardAsync =
         fun (card, accountInfo) ->
-        let insertCardCommand = mongoDb.GetCollection<CardEntity>(cardCollection).InsertOneAsync >> Async.AwaitTask
+        let insertCardCommand = mongoDb.GetCollection(cardCollection).InsertOneAsync >> Async.AwaitTask
         let insertAccInfoCommand =
-            mongoDb.GetCollection<CardAccountInfoEntity>(cardAccountInfoCollection).InsertOneAsync >> Async.AwaitTask
+            mongoDb.GetCollection(cardAccountInfoCollection).InsertOneAsync >> Async.AwaitTask
         asyncResult {
             do! card |> executeInsertAsync insertCardCommand
             do! accountInfo |> executeInsertAsync insertAccInfoCommand
@@ -81,3 +79,4 @@ module CommandRepository =
             let replaceCommand (selector: Expression<_>, accInfo, options) =
                 mongoDb.GetCollection(cardAccountInfoCollection).ReplaceOneAsync(selector, accInfo, options)
             accInfo |> executeReplaceAsync replaceCommand
+

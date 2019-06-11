@@ -9,35 +9,47 @@ module EntityToDomainMapping =
     open CardManagement.Common.CommonTypes
     open CardManagement.Common
 
-    let private mapValidationError entityName entityId (err: ValidationError) =
+    let private mapValidationError entityName entityId (err: ValidationError)
+        : InvalidDbDataError =
         { EntityId = entityId
           EntityName = entityName
           Message = sprintf "Could not deserialize field %s. Message: %s" err.FieldPath err.Message }
 
-    let private validateCardEntity (cardEntity: CardEntity, cardAccountEntity) : Result<Card, ValidationError> =
+    let private validateCardEntityWithAccInfo (cardEntity: CardEntity, cardAccountEntity)
+        : Result<Card * AccountInfo, ValidationError> =
         result {
             let! cardNumber = CardNumber.create "cardNumber" cardEntity.CardNumber
             let! name = LetterString.create "name" cardEntity.Name
-            let! month = Month.ofNumber "expirationMonth" cardEntity.ExpirationMonth
+            let! month = Month.create "expirationMonth" cardEntity.ExpirationMonth
             let! year = Year.create "expirationYear" cardEntity.ExpirationYear
             let accountInfo =
+                { Balance = Money cardAccountEntity.Balance
+                  DailyLimit = DailyLimit.ofDecimal cardAccountEntity.DailyLimit
+                  Holder = cardEntity.UserId }
+            let cardAccountInfo =
                 if cardEntity.IsActive then
-                    { Balance = Money cardAccountEntity.Balance
-                      DailyLimit = DailyLimit.ofDecimal cardAccountEntity.DailyLimit
-                      Holder = cardEntity.UserId }
+                    accountInfo
                     |> Active
                 else Deactivated
             return
-                { Number = cardNumber
-                  Name = name
-                  HolderId = cardEntity.UserId
-                  Expiration = (month, year)
-                  AccountDetails = accountInfo }
+                ({ Number = cardNumber
+                   Name = name
+                   HolderId = cardEntity.UserId
+                   Expiration = (month, year)
+                   AccountDetails = cardAccountInfo }, accountInfo)
         }
+
+    let private validateCardEntity (cardEntity: CardEntity, cardAccountEntity) : Result<Card, ValidationError> =
+        validateCardEntityWithAccInfo (cardEntity, cardAccountEntity)
+        |> Result.map fst
 
     let mapCardEntity (cardEntity, cardAccountEntity) =
         validateCardEntity (cardEntity, cardAccountEntity)
-        |> Result.mapError (mapValidationError "card" cardEntity.CardNumber)
+        |> Result.mapError (mapValidationError "CardEntity" <| entityId cardEntity)
+
+    let mapCardEntityWithAccountInfo (cardEntity, cardAccountEntity) =
+        validateCardEntityWithAccInfo (cardEntity, cardAccountEntity)
+        |> Result.mapError (mapValidationError "CardEntity" <| entityId cardEntity)
 
     let private validateAddressEntity (entity: AddressEntity) : Result<Address, ValidationError> =
         result {
@@ -54,10 +66,10 @@ module EntityToDomainMapping =
 
     let mapAddressEntity entity : Result<Address, InvalidDbDataError>=
         validateAddressEntity entity
-        |> Result.mapError (mapValidationError "address" (entity |> sprintf "%A"))
+        |> Result.mapError (mapValidationError "AddressEntity" (entity |> sprintf "%A"))
 
     let private validateUserInfoEntity (entity: UserEntity) : Result<UserInfo, ValidationError> =
-        result {            
+        result {
             let! name = LetterString.create "name" entity.Name
             let! address = validateAddressEntity entity.Address
             return
@@ -68,7 +80,7 @@ module EntityToDomainMapping =
 
     let mapUserInfoEntity (entity: UserEntity) : Result<UserInfo, InvalidDbDataError> =
         validateUserInfoEntity entity
-        |> Result.mapError (mapValidationError "user" <| entityId entity)
+        |> Result.mapError (mapValidationError "UserEntity" <| entityId entity)
 
     let mapUserEntity (entity: UserEntity) (cardEntities: (CardEntity * CardAccountInfoEntity) list)
         : Result<User, InvalidDbDataError> =
@@ -79,4 +91,4 @@ module EntityToDomainMapping =
             return
                 { UserInfo = userInfo
                   Cards = cards |> Set.ofList }
-        } |> Result.mapError (mapValidationError "user" <| entityId entity)
+        } |> Result.mapError (mapValidationError "UserEntity" <| entityId entity)

@@ -13,6 +13,8 @@ module CardDataPipeline =
     type ReplaceUserAsync = UserInfo -> IoResult<unit>
     type GetUserInfoAsync = UserId -> IoResult<UserInfo option>
     type GetUserWithCardsAsync = UserId -> IoResult<User option>
+    type GetCardAsync = CardNumber -> IoResult<Card option>
+    type GetCardWithAccinfoAsync = CardNumber -> IoResult<(Card*AccountInfo) option>
 
     let createCardAsync (mongoDb: MongoDb) : CreateCardAsync =
         fun (card, accountInfo) ->
@@ -71,4 +73,30 @@ module CardDataPipeline =
                             } |> Result.mapError InvalidDbData
                         return user
                     }
+        }
+
+    let getCardAsync (mongoDb: MongoDb) : GetCardAsync =
+        fun cardNumber ->
+        async {
+            let! card = QueryRepository.getCardAsync mongoDb cardNumber.Value
+            return
+                match card with
+                | None -> Ok None
+                | Some (card, accountInfo) ->
+                    (card, accountInfo) |> EntityToDomainMapping.mapCardEntity
+                    |> Result.map Some
+                    |> Result.mapError InvalidDbData
+        }
+
+    let getCardWithAccountInfoAsync (mongoDb: MongoDb) : GetCardWithAccinfoAsync =
+        fun cardNumber ->
+        async {
+            let! card = QueryRepository.getCardAsync mongoDb cardNumber.Value
+            return
+                match card with
+                | None -> Ok None
+                | Some (card, accountInfo) ->
+                    (card, accountInfo) |> EntityToDomainMapping.mapCardEntityWithAccountInfo
+                    |> Result.map Some
+                    |> Result.mapError InvalidDbData
         }

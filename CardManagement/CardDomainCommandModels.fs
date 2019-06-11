@@ -48,6 +48,27 @@ module CardDomainCommandModels =
           Number: string
           PaymentAmount: decimal }
 
+    [<CLIMutable>]
+    type CreateAddressCommandModel =
+        { Country: string
+          City: string
+          PostalCode: string
+          AddressLine1: string
+          AddressLine2: string }
+
+    [<CLIMutable>]
+    type CreateUserCommandModel =
+        { Name: string
+          Address: CreateAddressCommandModel }
+
+    [<CLIMutable>]
+    type CreateCardCommandModel =
+        { CardNumber : string
+          Name: string
+          ExpirationMonth: uint16
+          ExpirationYear: uint16
+          UserId: UserId }
+
     (*
     This is a brief API description made with just type aliases.
     As you can see, every public function here returns a `Result` with possible `ValidationError`.
@@ -57,6 +78,9 @@ module CardDomainCommandModels =
     type ValidateDeactivateCardCommand = DeactivateCardCommandModel    -> ValidationResult<DeactivateCommand>
     type ValidateSetDailyLimitCommand  = SetDailyLimitCardCommandModel -> ValidationResult<SetDailyLimitCommand>
     type ValidateProcessPaymentCommand = ProcessPaymentCommandModel    -> ValidationResult<ProcessPaymentCommand>
+    type ValidateCreateAddressCommand  = CreateAddressCommandModel     -> ValidationResult<Address>
+    type ValidateCreateUserCommand     = CreateUserCommandModel        -> ValidationResult<UserInfo>
+    type ValidateCreateCardCommand     = CreateCardCommandModel        -> ValidationResult<Card>
 
     let private validateCardNumber = CardNumber.create "cardNumber"
 
@@ -97,3 +121,45 @@ module CardDomainCommandModels =
                     { CardNumber = number
                       PaymentAmount = amount }
             }
+
+    let validateCreateAddressCommand : ValidateCreateAddressCommand =
+        fun cmd ->
+        result {
+            let! country = parseCountry cmd.Country
+            let! city = LetterString.create "city" cmd.City
+            let! postalCode = PostalCode.create "postalCode" cmd.PostalCode
+            return
+                { Address.Country = country
+                  City = city
+                  PostalCode = postalCode
+                  AddressLine1 = cmd.AddressLine1
+                  AddressLine2 = cmd.AddressLine2}
+        }
+
+    let validateCreateUserCommand userId : ValidateCreateUserCommand =
+        fun cmd ->
+        result {
+            let! name = LetterString.create "name" cmd.Name
+            let! address = validateCreateAddressCommand cmd.Address
+            return
+                { UserInfo.Id = userId
+                  Name = name
+                  Address = address }
+        }
+
+    let validateCreateCardCommand : ValidateCreateCardCommand =
+        fun cmd ->
+        result {
+            let! name = LetterString.create "name" cmd.Name
+            let! number = CardNumber.create "cardNumber" cmd.CardNumber
+            let! month = Month.create "expirationMonth" cmd.ExpirationMonth
+            let! year = Year.create "expirationYear" cmd.ExpirationYear
+            return
+                { Card.Number = number
+                  Name = name
+                  HolderId = cmd.UserId
+                  Expiration = month,year
+                  AccountDetails =
+                     AccountInfo.Default cmd.UserId
+                     |> Active }
+        }

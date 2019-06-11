@@ -73,6 +73,11 @@ module CardDomain =
         { Holder: UserId
           Balance: Money
           DailyLimit: DailyLimit }
+        with
+        static member Default userId =
+            { Holder = userId
+              Balance = Money 0m
+              DailyLimit = Unlimited }
 
     (*
     This bit is important. As you can see, `AccountInfo` type is holding information about

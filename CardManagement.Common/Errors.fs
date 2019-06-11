@@ -34,10 +34,6 @@ module Errors =
         { Operation: string
           Reason: string }
 
-    type Panic =
-        | Exc of Exception
-        | PanicMessage of message: string * source: string
-
     type InvalidDbDataError =
         { EntityName: string
           EntityId: string
@@ -46,8 +42,8 @@ module Errors =
     type DataRelatedError =
         | EntityAlreadyExists of entityName: string * id: string
         | EntityNotFound of entityName: string * id: string
-        | EntityIsInUse of entityName: string
-        | UpdateError of entityName:string * message:string
+        | EntityIsInUse of entityName: string * id: string
+        | UpdateError of entityName:string * id: string * message:string
         | InvalidDbData of InvalidDbDataError
 
     type Bug =
@@ -109,3 +105,8 @@ module Result =
                     let acc = Result.map (fun oks -> ok :: oks) acc
                     loop acc tail
         loop (Ok []) results
+
+    let ofOption err opt =
+        match opt with
+        | Some v -> Ok v
+        | None -> Error err

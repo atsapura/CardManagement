@@ -29,7 +29,7 @@ module CommonTypes =
             | October -> 10us
             | November -> 11us
             | December -> 12us
-        static member ofNumber field n =
+        static member create field n =
             match n with
             | 1us -> January |> Ok
             | 2us -> February |> Ok
