@@ -78,7 +78,7 @@ module CommonTypes =
             match str with
             | (""|null) -> validationError field "Postal code can't be empty"
             | str ->
-                if postalCodeRegex.IsMatch(str)
+                if postalCodeRegex.IsMatch(str) |> not
                     then validationError field "postal code must contain 5 or 6 digits and nothing else"
                 else PostalCode str |> Ok
 

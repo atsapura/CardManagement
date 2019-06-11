@@ -18,7 +18,7 @@ module CompositionRoot =
     type CreateCard = CreateCardCommandModel -> PipelineResult<CardInfoModel>
     type SetDailyLimit = SetDailyLimitCardCommandModel -> PipelineResult<CardInfoModel>
     type ProcessPayment = ProcessPaymentCommandModel -> PipelineResult<CardInfoModel>
-    type GetUser = UserId -> PipelineResult<UserModel>
+    type GetUser = UserId -> PipelineResult<UserModel option>
     type GetCard = CardNumberString -> PipelineResult<CardInfoModel option>
     type ActivateCard = ActivateCardCommandModel -> PipelineResult<CardInfoModel>
     type DeactivateCard = DeactivateCardCommandModel -> PipelineResult<CardInfoModel>
@@ -42,6 +42,13 @@ module CompositionRoot =
         let createUserAsync = CardDataPipeline.createUserAsync mongoDb |> logifyAsync "CardDataPipeline.createUserAsync"
         userModel
         |> (CardPipeline.createUser userId createUserAsync |> logifyAsync "CardPipeline.createUser")
+
+    let getUser : GetUser =
+        fun userId ->
+        let mongoDb = getMongoDb()
+        let getUserAsync = CardDataPipeline.getUserWithCards mongoDb |> logifyAsync "CardDataPipeline.getUserWithCardsAsync"
+        userId
+        |> (CardPipeline.getUser getUserAsync |> logifyAsync "CardPipeline.getCard")
 
     let createCard : CreateCard =
         fun cardModel ->
