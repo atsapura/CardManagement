@@ -17,7 +17,7 @@ module CardActions =
     open CardManagement.Common
 
     let private isExpired (currentDate: DateTimeOffset) (month: Month, year: Year) =
-        (int year.Value, month.toNumber() |> int) < (currentDate.Year, currentDate.Month)
+        (int year.Value, month.ToNumber() |> int) < (currentDate.Year, currentDate.Month)
 
     let private setDailyLimitNotAllowed = operationNotAllowed "Set daily limit"
 

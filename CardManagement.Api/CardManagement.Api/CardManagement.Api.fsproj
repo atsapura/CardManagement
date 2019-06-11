@@ -24,6 +24,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\CardManagement.Common\CardManagement.Common.fsproj" />
+    <ProjectReference Include="..\..\CardManagement.Data\CardManagement.Data.fsproj" />
+    <ProjectReference Include="..\..\CardManagement\CardManagement.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="4.6.2" />
   </ItemGroup>
 

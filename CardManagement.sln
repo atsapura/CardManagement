@@ -7,7 +7,13 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "CardManagement", "CardManag
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "CardManagement.Common", "CardManagement.Common\CardManagement.Common.fsproj", "{5F07D8E7-80FE-4C45-9F06-280EF75A51DF}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "CardManagement.Api", "CardManagement.Api\CardManagement.Api\CardManagement.Api.fsproj", "{83F3B3AF-970D-4D14-ADED-93E34820EC03}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "CardManagement.Api", "CardManagement.Api\CardManagement.Api\CardManagement.Api.fsproj", "{83F3B3AF-970D-4D14-ADED-93E34820EC03}"
+EndProject
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "CardManagement.Data", "CardManagement.Data\CardManagement.Data.fsproj", "{0DB9F3A2-1FB0-42F5-BFDB-528367FFC44E}"
+EndProject
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "CardManagement.Infrastructure", "CardManagement.Infrastructure\CardManagement.Infrastructure.fsproj", "{69C44B43-EC3A-461D-9587-1D7D860394A1}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "CardManagement.Console", "CardManagement.Console\CardManagement.Console.fsproj", "{E3DB1DF2-673E-4627-927B-95E094BCCC2F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +33,18 @@ Global
 		{83F3B3AF-970D-4D14-ADED-93E34820EC03}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{83F3B3AF-970D-4D14-ADED-93E34820EC03}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{83F3B3AF-970D-4D14-ADED-93E34820EC03}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0DB9F3A2-1FB0-42F5-BFDB-528367FFC44E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0DB9F3A2-1FB0-42F5-BFDB-528367FFC44E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0DB9F3A2-1FB0-42F5-BFDB-528367FFC44E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0DB9F3A2-1FB0-42F5-BFDB-528367FFC44E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{69C44B43-EC3A-461D-9587-1D7D860394A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{69C44B43-EC3A-461D-9587-1D7D860394A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{69C44B43-EC3A-461D-9587-1D7D860394A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{69C44B43-EC3A-461D-9587-1D7D860394A1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E3DB1DF2-673E-4627-927B-95E094BCCC2F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E3DB1DF2-673E-4627-927B-95E094BCCC2F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E3DB1DF2-673E-4627-927B-95E094BCCC2F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E3DB1DF2-673E-4627-927B-95E094BCCC2F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

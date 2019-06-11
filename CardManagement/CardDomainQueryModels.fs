@@ -44,7 +44,7 @@ module CardDomainQueryModels =
     let toBasicInfoToModel (basicCard: Card) =
         { Number = basicCard.Number.Value
           Name = basicCard.Name.Value
-          ExpirationMonth = (fst basicCard.Expiration).toNumber()
+          ExpirationMonth = (fst basicCard.Expiration).ToNumber()
           ExpirationYear = (snd basicCard.Expiration).Value }
 
     let toCardInfoModel card =
@@ -71,7 +71,7 @@ module CardDomainQueryModels =
           HolderAddress = cardDetails.HolderAddress |> toAddressModel }
 
     let toUserModel (user: User) =
-        { Id = user.Id
-          Name = user.Name.Value
-          Address = user.Address |> toAddressModel
-          Cards = List.map toCardInfoModel user.Cards }
+        { Id = user.UserInfo.Id
+          Name = user.UserInfo.Name.Value
+          Address = user.UserInfo.Address |> toAddressModel
+          Cards = Set.toList user.Cards |> List.map toCardInfoModel }

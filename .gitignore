@@ -7,3 +7,5 @@
 [Oo]bj
 [Dd]ebug
 [Rr]elease
+*.user
+*.suo
