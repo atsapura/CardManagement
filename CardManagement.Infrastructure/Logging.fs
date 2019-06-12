@@ -26,18 +26,18 @@ module Logging =
             Log.Error(errorMessage)
 
     let logify funcName func x =
-        printf "start %s with arg %A" funcName x
+        sprintf "start %s with arg\n%A" funcName x |> Log.Information
         let result = func x
-        printf "%s finished with result %A" funcName result
+        sprintf "%s finished with result\n%A" funcName result |> Log.Information
         result
 
     let logifyAsync funcName funcAsync x =
         async {
-            printf "start %s with arg %A" funcName x
+            sprintf "start %s with arg\n%A" funcName x |> Log.Information
             let! result = funcAsync x
-            printf "%s finished with result %A" funcName result
+            sprintf "%s finished with result\n%A" funcName result |> Log.Information
             match result with
-            | Ok ok -> printf "%s finished with result %A" funcName ok
+            | Ok ok -> sprintf "%s finished with result\n%A" funcName ok |> Log.Information
             | Error e ->
                 match box e with
                 | :? DataRelatedError as er -> logDataError er

@@ -5,6 +5,7 @@ module AppConfiguration =
     open System.IO
     open System
     open CardManagement.Data.CardMongoConfiguration
+    open Serilog
 
     let stringSetting defaultValue str = Option.ofObj str |> Option.defaultValue defaultValue
 
@@ -18,6 +19,10 @@ module AppConfiguration =
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", false, true)
             .Build()
+
+    let configureLog() =
+        let logger = LoggerConfiguration().WriteTo.Console().CreateLogger()
+        Log.Logger <- logger
 
     let getMongoSettings (config: IConfigurationRoot) =
         let setting = sprintf "MongoDB:%s"
