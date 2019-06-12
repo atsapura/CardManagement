@@ -8,7 +8,7 @@ module CommonTypes =
 
     let cardNumberRegex = new Regex("^[0-9]{16}$", RegexOptions.Compiled)
 
-    let nonLettersRegex = new Regex("\W", RegexOptions.Compiled)
+    let lettersRegex = new Regex("^[\w]+[\w ]+[\w]+$", RegexOptions.Compiled)
 
     let postalCodeRegex = new Regex("^[0-9]{5,6}$", RegexOptions.Compiled)
 
@@ -61,8 +61,8 @@ module CommonTypes =
             match str with
             | (""|null) -> validationError field "string must contain letters"
             | str ->
-                if nonLettersRegex.IsMatch(str) then validationError field "string must contain only letters"
-                else LetterString str |> Ok
+                if lettersRegex.IsMatch(str) then LetterString str |> Ok
+                else validationError field "string must contain only letters" 
 
     [<Struct>]
     type Money = Money of decimal
