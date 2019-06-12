@@ -20,21 +20,28 @@ module CommandRepository =
         opt.IsUpsert <- false
         opt
 
-    let private (|DuplicateKey|_|) (ex: Exception) =
+    let private isDuplicateKeyException (ex: Exception) =
+        ex :? MongoWriteException && (ex :?> MongoWriteException).WriteError.Category = ServerErrorCategory.DuplicateKey
+
+    let rec private (|DuplicateKey|_|) (ex: Exception) =
         match ex with
-        | :? MongoWriteException as ex when ex.WriteError.Category = ServerErrorCategory.DuplicateKey ->
+        | :? MongoWriteException as ex when isDuplicateKeyException ex ->
             Some ex
+        | :? MongoBulkWriteException as bex when bex.InnerException |> isDuplicateKeyException ->
+            Some (bex.InnerException :?> MongoWriteException)
+        | :? AggregateException as aex when aex.InnerException |> isDuplicateKeyException ->
+            Some (aex.InnerException :?> MongoWriteException)
         | _ -> None
 
     let inline private executeInsertAsync (func: 'a -> Async<unit>) arg =
-        try
-            async {
+        async {
+            try
                 do! func(arg)
                 return Ok ()
-            }
-        with
-        | DuplicateKey ex ->
-            async { return EntityAlreadyExists (arg.GetType().Name, (entityId arg)) |> Error }
+            with
+            | DuplicateKey ex ->
+                    return EntityAlreadyExists (arg.GetType().Name, (entityId arg)) |> Error
+        }
 
     let inline private executeReplaceAsync (update: _ -> Task<ReplaceOneResult>) arg =
         async {
