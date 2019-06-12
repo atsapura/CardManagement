@@ -21,9 +21,7 @@ module QueryRepository =
 
     let private runSingleQuery dbQuery id =
         async {
-            printfn "run single query with id %A" id
             let! result = dbQuery id |> Async.AwaitTask
-            printfn "single query result: [%A]" result
             return unsafeNullToOption result
         }
 

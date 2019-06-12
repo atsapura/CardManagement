@@ -35,10 +35,10 @@ module Logging =
         async {
             sprintf "start %s with arg\n%A" funcName x |> Log.Information
             let! result = funcAsync x
-            sprintf "%s finished with result\n%A" funcName result |> Log.Information
             match result with
             | Ok ok -> sprintf "%s finished with result\n%A" funcName ok |> Log.Information
             | Error e ->
+                sprintf "%s finished with error:" funcName |> Log.Information
                 match box e with
                 | :? DataRelatedError as er -> logDataError er
                 | :? Error as er -> logError er
