@@ -50,7 +50,7 @@ module CardActions =
         | Deactivated -> cardDeactivatedMessage card.Number |> setDailyLimitNotAllowed
         | Active accInfo -> { card with AccountDetails = Active { accInfo with DailyLimit = limit } } |> Ok
 
-    let processPayment (currentDate: DateTimeOffset) spentToday card (paymentAmount: MoneyTransaction) =
+    let processPayment (currentDate: DateTimeOffset) (spentToday: Money) card (paymentAmount: MoneyTransaction) =
         if isCardExpired currentDate card then
             cardExpiredMessage card.Number |> processPaymentNotAllowed
         else
@@ -63,7 +63,7 @@ module CardActions =
             else
             match accInfo.DailyLimit with
             | Limit limit when limit < spentToday + paymentAmount ->
-                sprintf "Daily limit is exceeded for card %s" card.Number.Value
+                sprintf "Daily limit is exceeded for card %s. Today was spent %O" card.Number.Value spentToday.Value
                 |> processPaymentNotAllowed
             (*
             We could use here the ultimate wild card case like this:
