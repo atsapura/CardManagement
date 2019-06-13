@@ -9,10 +9,10 @@ module EntityToDomainMapping =
     open CardManagement.Common.CommonTypes
     open CardManagement.Common
 
-    let private mapValidationError entityName entityId (err: ValidationError)
+    let inline private mapValidationError (entity: ^a) (err: ValidationError)
         : InvalidDbDataError =
-        { EntityId = entityId
-          EntityName = entityName
+        { EntityId = entityId entity
+          EntityName = typeof< ^a>.Name
           Message = sprintf "Could not deserialize field %s. Message: %s" err.FieldPath err.Message }
 
     let private validateCardEntityWithAccInfo (cardEntity: CardEntity, cardAccountEntity)
@@ -45,11 +45,11 @@ module EntityToDomainMapping =
 
     let mapCardEntity (cardEntity, cardAccountEntity) =
         validateCardEntity (cardEntity, cardAccountEntity)
-        |> Result.mapError (mapValidationError "CardEntity" <| entityId cardEntity)
+        |> Result.mapError (mapValidationError cardEntity)
 
     let mapCardEntityWithAccountInfo (cardEntity, cardAccountEntity) =
         validateCardEntityWithAccInfo (cardEntity, cardAccountEntity)
-        |> Result.mapError (mapValidationError "CardEntity" <| entityId cardEntity)
+        |> Result.mapError (mapValidationError cardEntity)
 
     let private validateAddressEntity (entity: AddressEntity) : Result<Address, ValidationError> =
         result {
@@ -66,7 +66,7 @@ module EntityToDomainMapping =
 
     let mapAddressEntity entity : Result<Address, InvalidDbDataError>=
         validateAddressEntity entity
-        |> Result.mapError (mapValidationError "AddressEntity" (entity |> sprintf "%A"))
+        |> Result.mapError (mapValidationError entity)
 
     let private validateUserInfoEntity (entity: UserEntity) : Result<UserInfo, ValidationError> =
         result {
@@ -80,7 +80,7 @@ module EntityToDomainMapping =
 
     let mapUserInfoEntity (entity: UserEntity) : Result<UserInfo, InvalidDbDataError> =
         validateUserInfoEntity entity
-        |> Result.mapError (mapValidationError "UserEntity" <| entityId entity)
+        |> Result.mapError (mapValidationError entity)
 
     let mapUserEntity (entity: UserEntity) (cardEntities: (CardEntity * CardAccountInfoEntity) list)
         : Result<User, InvalidDbDataError> =
@@ -91,4 +91,18 @@ module EntityToDomainMapping =
             return
                 { UserInfo = userInfo
                   Cards = cards |> Set.ofList }
-        } |> Result.mapError (mapValidationError "UserEntity" <| entityId entity)
+        } |> Result.mapError (mapValidationError entity)
+
+    let mapBalanceOperationEntity (entity: BalanceOperationEntity) : Result<BalanceOperation, InvalidDbDataError> =
+        result {
+            let! cardNumber = entity.Id.CardNumber |> CardNumber.create "id.cardNumber"
+            let! balanceChange =
+                if entity.BalanceChange < 0M then
+                    -entity.BalanceChange |> MoneyTransaction.create |> Result.map Decrease
+                else entity.BalanceChange |> MoneyTransaction.create |> Result.map Increase
+            return
+                { CardNumber = cardNumber
+                  NewBalance = Money entity.NewBalance
+                  Timestamp = entity.Id.Timestamp
+                  BalanceChange = balanceChange }
+        } |> Result.mapError (mapValidationError entity)

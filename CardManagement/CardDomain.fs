@@ -13,6 +13,7 @@ module CardDomain =
     open System.Text.RegularExpressions
     open CardManagement.Common.Errors
     open CardManagement.Common
+    open System
 
     let private cardNumberRegex = new Regex("^[0-9]{16}$", RegexOptions.Compiled)
 
@@ -115,6 +116,24 @@ module CardDomain =
         { Name: LetterString
           Id: UserId
           Address: Address }
+
     type User =
         { UserInfo : UserInfo
           Cards: Card Set }
+
+    [<Struct>]
+    type BalanceChange =
+        | Increase of increase: MoneyTransaction
+        | Decrease of decrease: MoneyTransaction
+        with
+        member this.ToDecimal() =
+            match this with
+            | Increase i -> i.Value
+            | Decrease d -> d.Value
+
+    [<Struct>]
+    type BalanceOperation =
+        { CardNumber: CardNumber
+          Timestamp: DateTimeOffset
+          BalanceChange: BalanceChange
+          NewBalance: Money }

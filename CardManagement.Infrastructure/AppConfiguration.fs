@@ -20,8 +20,10 @@ module AppConfiguration =
             .AddJsonFile("appsettings.json", false, true)
             .Build()
 
+    let [<Literal>] logFormat = "[{Timestamp:dd/MM/yy HH:mm:ss.fff} {Level:u3}] {Message:lj}{NewLine}{Exception}"
+
     let configureLog() =
-        let logger = LoggerConfiguration().WriteTo.Console().CreateLogger()
+        let logger = LoggerConfiguration().WriteTo.Console(outputTemplate = logFormat).CreateLogger()
         Log.Logger <- logger
 
     let getMongoSettings (config: IConfigurationRoot) =

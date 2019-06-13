@@ -31,5 +31,6 @@ module CardMongoConfiguration =
     let [<Literal>] internal cardCollection = "Card"
     let [<Literal>] internal userCollection = "User"
     let [<Literal>] internal cardAccountInfoCollection = "cardAccountInfo"
+    let [<Literal>] internal balanceOperationCollection = "BalanceOperation"
 
     type CardNumberString = string

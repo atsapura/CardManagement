@@ -22,6 +22,7 @@ module CompositionRoot =
     type GetCard = CardNumberString -> PipelineResult<CardInfoModel option>
     type ActivateCard = ActivateCardCommandModel -> PipelineResult<CardInfoModel>
     type DeactivateCard = DeactivateCardCommandModel -> PipelineResult<CardInfoModel>
+    type TopUp = TopUpCommandModel -> PipelineResult<CardInfoModel>
 
     let private mongoSettings() = AppConfiguration.buildConfig() |> AppConfiguration.getMongoSettings
     let private getMongoDb() = mongoSettings() |> CardMongoConfiguration.getDatabase
@@ -34,6 +35,12 @@ module CompositionRoot =
 
     let private replaceCardAsync mongoDb =
         CardDataPipeline.replaceCardAsync mongoDb |> logifyAsync "CardDataPipeline.replaceCardAsync"
+
+    let private getBalanceOperationsAsync mongoDb =
+        CardDataPipeline.getBalanceOperationsAsync mongoDb |> logifyAsync "CardDataPipeline.getBalanceOperationsAsync"
+
+    let private createBalanceOperationAsync mongoDb =
+        CardDataPipeline.createBalanceOperationAsync mongoDb |> logifyAsync "CardDataPipeline.createBalanceOperationAsync"
 
     let createUser : CreateUser =
         fun userModel ->
@@ -86,5 +93,31 @@ module CompositionRoot =
         let getCardAsync = getCardAsync mongoDb
         let replaceCardAsync = replaceCardAsync mongoDb
         cmd
-        |> (CardPipeline.setDailyLimit DateTimeOffset.UtcNow getCardAsync replaceCardAsync |> logifyAsync "CardPipeline.getCard")
+        |> (CardPipeline.setDailyLimit DateTimeOffset.UtcNow getCardAsync replaceCardAsync
+            |> logifyAsync "CardPipeline.getCard")
 
+    let processPayment : ProcessPayment =
+        fun paymentModel ->
+        let mongoDb = getMongoDb()
+        let getCardAsync = getCardAsync mongoDb
+        let getBalanceOperationsAsync = getBalanceOperationsAsync mongoDb
+        let createBalanceOperationAsync = createBalanceOperationAsync mongoDb
+        let replaceCardAsync = replaceCardAsync mongoDb
+        paymentModel
+        |> (CardPipeline.processPayment
+                DateTimeOffset.UtcNow
+                getCardAsync
+                getBalanceOperationsAsync
+                replaceCardAsync
+                createBalanceOperationAsync
+            |> logifyAsync "CardPipeline.processPayment")
+
+    let topUp : TopUp =
+        fun topUpModel ->
+        let mongoDb = getMongoDb()
+        let getCardAsync = getCardAsync mongoDb
+        let createBalanceOperationAsync = createBalanceOperationAsync mongoDb
+        let replaceCardAsync = replaceCardAsync mongoDb
+        topUpModel
+        |> (CardPipeline.topUp DateTimeOffset.UtcNow getCardAsync replaceCardAsync createBalanceOperationAsync
+            |> logifyAsync "CardPipeline.topUp")

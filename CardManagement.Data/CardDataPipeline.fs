@@ -6,6 +6,7 @@ module CardDataPipeline =
     open CardManagement.Data.CardMongoConfiguration
     open FsToolkit.ErrorHandling
     open CardManagement.Common
+    open System
 
     type CreateCardAsync = Card*AccountInfo -> IoResult<unit>
     type CreateUserAsync = UserInfo -> IoResult<unit>
@@ -15,6 +16,8 @@ module CardDataPipeline =
     type GetUserWithCardsAsync = UserId -> IoResult<User option>
     type GetCardAsync = CardNumber -> IoResult<Card option>
     type GetCardWithAccinfoAsync = CardNumber -> IoResult<(Card*AccountInfo) option>
+    type GetBalanceOperationsAsync = CardNumber * DateTimeOffset * DateTimeOffset -> IoResult<BalanceOperation list>
+    type CreateBalanceOperationAsync = BalanceOperation -> IoResult<unit>
 
     let createCardAsync (mongoDb: MongoDb) : CreateCardAsync =
         fun (card, accountInfo) ->
@@ -29,8 +32,13 @@ module CardDataPipeline =
 
     let replaceCardAsync (mongoDb: MongoDb) : ReplaceCardAsync =
         fun card ->
-        let cardEntity, _ = card |> DomainToEntityMapping.mapCardToEntity
-        cardEntity |> CommandRepository.replaceCardAsync mongoDb
+        let cardEntity, maybeAccInfo = card |> DomainToEntityMapping.mapCardToEntity
+        asyncResult {
+            do! cardEntity |> CommandRepository.replaceCardAsync mongoDb
+            match maybeAccInfo with
+            | None -> return ()
+            | Some accInfo -> return! accInfo |> CommandRepository.replaceCardAccountInfoAsync mongoDb
+        }
 
     let replaceUserAsync (mongoDb: MongoDb) : ReplaceUserAsync =
         fun user ->
@@ -100,3 +108,17 @@ module CardDataPipeline =
                     |> Result.map Some
                     |> Result.mapError InvalidDbData
         }
+
+    let getBalanceOperationsAsync (mongoDb: MongoDb) : GetBalanceOperationsAsync =
+        fun (cardNumber, fromDate, toDate) ->
+        async {
+            let! operations = QueryRepository.getBalanceOperationsAsync mongoDb (cardNumber.Value, fromDate, toDate)
+            return List.map EntityToDomainMapping.mapBalanceOperationEntity operations
+                |> Result.combine
+                |> Result.mapError InvalidDbData
+        }
+
+    let createBalanceOperationAsync (mongoDb: MongoDb) : CreateBalanceOperationAsync =
+        fun balanceOperation ->
+        balanceOperation |> DomainToEntityMapping.mapBalanceOperationToEntity
+        |> CommandRepository.createBalanceOperationAsync mongoDb

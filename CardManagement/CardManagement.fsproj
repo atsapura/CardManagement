@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <Compile Include="CardDomain.fs" />
+    <Compile Include="BalanceOperation.fs" />
     <Compile Include="CardActions.fs" />
     <Compile Include="CardDomainQueryModels.fs" />
     <Compile Include="CardDomainCommandModels.fs" />

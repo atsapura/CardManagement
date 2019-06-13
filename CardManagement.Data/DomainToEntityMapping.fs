@@ -10,6 +10,7 @@ module DomainToEntityMapping =
     type MapCard = Card -> CardEntity * CardAccountInfoEntity option
     type MapAddress = Address -> AddressEntity
     type MapUser = UserInfo -> UserEntity
+    type MapBalanceOperation = BalanceOperation -> BalanceOperationEntity
 
     let mapAccountInfoToEntity : MapCardAccountInfo =
         fun (cardNumber, accountInfo) ->
@@ -55,3 +56,12 @@ module DomainToEntityMapping =
         { UserId = user.Id
           Address = user.Address |> mapAddressToEntity
           Name = user.Name.Value }
+
+    let mapBalanceOperationToEntity : MapBalanceOperation =
+        fun operation ->
+        { Id = { Timestamp = operation.Timestamp; CardNumber = operation.CardNumber.Value}
+          NewBalance = operation.NewBalance.Value
+          BalanceChange =
+            match operation.BalanceChange with
+            | Increase v -> v.Value
+            | Decrease v -> -v.Value }

@@ -65,11 +65,21 @@ module CommonTypes =
                 else validationError field "string must contain only letters" 
 
     [<Struct>]
+    type MoneyTransaction = private MoneyTransaction of decimal
+        with
+        member this.Value = let (MoneyTransaction v) = this in v
+        static member create amount =
+            if amount > 0M then MoneyTransaction amount |> Ok
+            else validationError "transaction" "Transaction amount must be positive"
+
+    [<Struct>]
     type Money = Money of decimal
         with
         member this.Value = match this with Money money -> money
         static member (+) (Money left, Money right) = left + right |> Money
         static member (-) (Money left, Money right) = left - right |> Money
+        static member (+) (Money money, MoneyTransaction tran) = money + tran |> Money
+        static member (-) (Money money, MoneyTransaction tran) = money - tran |> Money
 
     type PostalCode = private PostalCode of string
         with

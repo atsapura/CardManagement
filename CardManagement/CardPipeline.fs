@@ -38,6 +38,7 @@ module CardPipeline =
     type DeactivateCard = DeactivateCardCommandModel    -> PipelineResult<CardInfoModel>
     type SetDailyLimit  = SetDailyLimitCardCommandModel -> PipelineResult<CardInfoModel>
     type ProcessPayment = ProcessPaymentCommandModel    -> PipelineResult<CardInfoModel>
+    type TopUp          = TopUpCommandModel             -> PipelineResult<CardInfoModel>
     type CreateUser     = CreateUserCommandModel        -> PipelineResult<UserModel>
     type CreateCard     = CreateCardCommandModel        -> PipelineResult<CardInfoModel>
 
@@ -134,8 +135,9 @@ module CardPipeline =
     let processPayment
         (currentDate: DateTimeOffset)
         (getCardAsync: CardNumber -> IoResult<Card option>)
-        (getSpentTodayAsync: CardNumber -> IoResult<Money option>)
-        (saveSpentTodayAsync: CardNumber -> Money -> IoResult<unit>)
+        (getTodayOperations: CardNumber * DateTimeOffset * DateTimeOffset -> IoResult<BalanceOperation list>)
+        (saveCardAsync: Card -> IoResult<unit>)
+        (saveBalanceOperation: BalanceOperation -> IoResult<unit>)
         : ProcessPayment =
             fun processCommand ->
                 asyncResult {
@@ -144,14 +146,36 @@ module CardPipeline =
                     let cardNumber = validCommand.CardNumber
                     let! maybeCard = getCardAsync cardNumber |> expectDataRelatedErrorAsync
                     let! card = noneToError maybeCard validCommand.CardNumber.Value |> expectDataRelatedError
-                    let! maybeSpentToday = getSpentTodayAsync cardNumber |> expectDataRelatedErrorAsync
-                    let! spentToday = noneToError maybeSpentToday cardNumber.Value |> expectDataRelatedError
-                    let! (card, newSpentToday) =
+                    let today = currentDate.Date |> DateTimeOffset
+                    let tomorrow = currentDate.Date.AddDays(1.) |> DateTimeOffset
+                    let! todayOperations =
+                        getTodayOperations (validCommand.CardNumber, today, tomorrow) |> expectDataRelatedErrorAsync
+                    let spentToday = BalanceOperation.spentAtDate currentDate validCommand.CardNumber todayOperations
+                    let! (card, balanceOperation) =
                         processPayment currentDate spentToday card validCommand.PaymentAmount
                         |> expectOperationNotAllowedError
-                    do! saveSpentTodayAsync cardNumber newSpentToday |> expectDataRelatedErrorAsync
+                    do! saveBalanceOperation balanceOperation |> expectDataRelatedErrorAsync
+                    do! saveCardAsync card |> expectDataRelatedErrorAsync
                     return card |> toCardInfoModel
                 }
+
+    let topUp
+        (currentDate: DateTimeOffset)
+        (getCardAsync: CardNumber -> IoResult<Card option>)
+        (saveCardAsync: Card -> IoResult<unit>)
+        (saveBalanceOperation: BalanceOperation -> IoResult<unit>)
+        : TopUp =
+        fun cmd ->
+        asyncResult {
+            let! topUpCmd = validateTopUpCommand cmd |> expectValidationError
+            let! maybeCard = getCardAsync topUpCmd.CardNumber |> expectDataRelatedErrorAsync
+            let! card = noneToError maybeCard topUpCmd.CardNumber.Value |> expectDataRelatedError
+            let! (updatedCard, balanceOperation) =
+                topUp currentDate card topUpCmd.TopUpAmount |> expectOperationNotAllowedError
+            do! saveCardAsync updatedCard |> expectDataRelatedErrorAsync
+            do! saveBalanceOperation balanceOperation |> expectDataRelatedErrorAsync
+            return updatedCard |> toCardInfoModel
+        }
 
     let createUser userId (createUserAsync: UserInfo -> IoResult<unit>)
         : CreateUser =

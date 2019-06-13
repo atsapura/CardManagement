@@ -24,7 +24,11 @@ module CardDomainCommandModels =
 
     type ProcessPaymentCommand =
         { CardNumber: CardNumber
-          PaymentAmount: Money }
+          PaymentAmount: MoneyTransaction }
+
+    type TopUpCommand =
+        { CardNumber: CardNumber
+          TopUpAmount: MoneyTransaction }
 
     [<CLIMutable>]
     type ActivateCardCommandModel =
@@ -47,6 +51,12 @@ module CardDomainCommandModels =
         { UserId: UserId
           Number: string
           PaymentAmount: decimal }
+
+    [<CLIMutable>]
+    type TopUpCommandModel =
+        { UserId: UserId
+          Number: string
+          TopUpAmount: decimal }
 
     [<CLIMutable>]
     type CreateAddressCommandModel =
@@ -78,15 +88,12 @@ module CardDomainCommandModels =
     type ValidateDeactivateCardCommand = DeactivateCardCommandModel    -> ValidationResult<DeactivateCommand>
     type ValidateSetDailyLimitCommand  = SetDailyLimitCardCommandModel -> ValidationResult<SetDailyLimitCommand>
     type ValidateProcessPaymentCommand = ProcessPaymentCommandModel    -> ValidationResult<ProcessPaymentCommand>
+    type ValidateTopUpCommand          = TopUpCommandModel             -> ValidationResult<TopUpCommand>
     type ValidateCreateAddressCommand  = CreateAddressCommandModel     -> ValidationResult<Address>
     type ValidateCreateUserCommand     = CreateUserCommandModel        -> ValidationResult<UserInfo>
     type ValidateCreateCardCommand     = CreateCardCommandModel        -> ValidationResult<Card>
 
     let private validateCardNumber = CardNumber.create "cardNumber"
-
-    let private validatePaymentAmount amount =
-        if amount > 0m then Money amount |> Ok
-        else validationError "paymentAmount" "Payment amount must be greater than 0"
 
     let validateActivateCardCommand : ValidateActivateCardCommand =
         fun cmd ->
@@ -116,11 +123,21 @@ module CardDomainCommandModels =
         fun cmd ->
             result {
                 let! number = cmd.Number |> validateCardNumber
-                let! amount = cmd.PaymentAmount |> validatePaymentAmount
+                let! amount = cmd.PaymentAmount |> MoneyTransaction.create
                 return
                     { CardNumber = number
                       PaymentAmount = amount }
             }
+
+    let validateTopUpCommand : ValidateTopUpCommand =
+        fun cmd ->
+        result {
+            let! number = cmd.Number |> validateCardNumber
+            let! amount = cmd.TopUpAmount |> MoneyTransaction.create
+            return
+                { CardNumber = number
+                  TopUpAmount = amount }
+        }
 
     let validateCreateAddressCommand : ValidateCreateAddressCommand =
         fun cmd ->

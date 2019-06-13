@@ -18,6 +18,7 @@ module QueryRepository =
     type GetCardAsync = MongoDb -> CardNumberString -> IoQueryResult<(CardEntity * CardAccountInfoEntity)>
     type GetUserAsync = MongoDb -> UserId -> IoQueryResult<UserEntity>
     type GetUserCardsAsync = MongoDb -> UserId -> Async<(CardEntity * CardAccountInfoEntity) list>
+    type GetBalanceOperationsAsync = MongoDb -> (CardNumberString * DateTimeOffset * DateTimeOffset) -> Async<BalanceOperationEntity list>
 
     let private runSingleQuery dbQuery id =
         async {
@@ -91,3 +92,15 @@ module QueryRepository =
                 ]
             }
 
+    let private getBalanceOperationsCall (mongoDb: MongoDb) (cardNumber, fromDate, toDate) =
+        mongoDb.GetCollection<BalanceOperationEntity>(balanceOperationCollection)
+            .Find(fun bo -> bo.Id.CardNumber = cardNumber && bo.Id.Timestamp >= fromDate && bo.Id.Timestamp < toDate)
+            .ToListAsync()
+
+    let getBalanceOperationsAsync : GetBalanceOperationsAsync =
+        fun mongoDb (cardNumber, fromDate, toDate) ->
+            let operationsCall = getBalanceOperationsCall mongoDb >> Async.AwaitTask
+            async {
+                let! result = operationsCall (cardNumber, fromDate, toDate)
+                return result |> List.ofSeq
+            }

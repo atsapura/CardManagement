@@ -13,7 +13,8 @@ module CommandRepository =
     type CreateCardAsync = CardEntity * CardAccountInfoEntity -> IoResult<unit>
     type ReplaceUserAsync = UserEntity -> IoResult<unit>
     type ReplaceCardAsync = CardEntity -> IoResult<unit>
-    type UpdateCardAccountAsync = CardAccountInfoEntity -> IoResult<unit>
+    type ReplaceCardAccountInfoAsync = CardAccountInfoEntity -> IoResult<unit>
+    type CreateBalanceOperationAsync = BalanceOperationEntity -> IoResult<unit>
 
     let updateOptions =
         let opt = UpdateOptions()
@@ -81,9 +82,14 @@ module CommandRepository =
                 mongoDb.GetCollection(cardCollection).ReplaceOneAsync(selector, card, options)
             card |> executeReplaceAsync replaceCommand
 
-    let replaceCardAccountInfoAsync (mongoDb: MongoDb) : ReplaceCardAsync =
+    let replaceCardAccountInfoAsync (mongoDb: MongoDb) : ReplaceCardAccountInfoAsync =
         fun accInfo ->
             let replaceCommand (selector: Expression<_>, accInfo, options) =
                 mongoDb.GetCollection(cardAccountInfoCollection).ReplaceOneAsync(selector, accInfo, options)
             accInfo |> executeReplaceAsync replaceCommand
+
+    let createBalanceOperationAsync (mongoDb: MongoDb) : CreateBalanceOperationAsync =
+        fun balanceOperation ->
+            let insert = mongoDb.GetCollection(balanceOperationCollection).InsertOneAsync >> Async.AwaitTask
+            balanceOperation |> executeInsertAsync insert
 

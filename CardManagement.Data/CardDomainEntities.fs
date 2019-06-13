@@ -16,6 +16,8 @@ module CardDomainEntities =
           PostalCode: string
           AddressLine1: string
           AddressLine2: string }
+        with
+        member this.EntityId = sprintf "%A" this
 
     [<CLIMutable>]
     type CardEntity =
@@ -49,6 +51,19 @@ module CardDomainEntities =
         with
         member this.EntityId = this.UserId.ToString()
         member this.IdComparer = <@ System.Func<_,_> (fun c -> c.UserId = this.UserId) @>
+
+    [<CLIMutable>]
+    type BalanceOperationId =
+        { Timestamp: DateTimeOffset
+          CardNumber: string }
+    [<CLIMutable>]
+    type BalanceOperationEntity =
+        { [<BsonId>]
+          Id: BalanceOperationId
+          BalanceChange: decimal
+          NewBalance: decimal }
+        with
+        member this.EntityId = sprintf "%A" this.Id
 
     let isNullUnsafe (arg: 'a when 'a: not struct) =
         arg = Unchecked.defaultof<'a>

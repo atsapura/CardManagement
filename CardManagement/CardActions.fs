@@ -50,14 +50,14 @@ module CardActions =
         | Deactivated -> cardDeactivatedMessage card.Number |> setDailyLimitNotAllowed
         | Active accInfo -> { card with AccountDetails = Active { accInfo with DailyLimit = limit } } |> Ok
 
-    let processPayment (currentDate: DateTimeOffset) spentToday card paymentAmount =
+    let processPayment (currentDate: DateTimeOffset) spentToday card (paymentAmount: MoneyTransaction) =
         if isCardExpired currentDate card then
             cardExpiredMessage card.Number |> processPaymentNotAllowed
         else
         match card.AccountDetails with
         | Deactivated -> cardDeactivatedMessage card.Number |> processPaymentNotAllowed
         | Active accInfo ->
-            if paymentAmount > accInfo.Balance then
+            if paymentAmount.Value > accInfo.Balance.Value then
                 sprintf "Insufficent funds on card %s" card.Number.Value
                 |> processPaymentNotAllowed
             else
@@ -73,6 +73,28 @@ module CardActions =
             new case in here. So this is a safe way to do the same thing.
             *)
             | Limit _ | Unlimited ->
-                let updatedCard = { card with AccountDetails = Active { accInfo with Balance = accInfo.Balance - paymentAmount } }
-                let updatedSpentToday = spentToday + paymentAmount
-                Ok (updatedCard, updatedSpentToday)
+                let newBalance = accInfo.Balance - paymentAmount
+                let updatedCard = { card with AccountDetails = Active { accInfo with Balance = newBalance } }
+                let balanceOperation =
+                    { Timestamp = currentDate
+                      CardNumber = card.Number
+                      NewBalance = newBalance
+                      BalanceChange = Decrease paymentAmount }
+                Ok (updatedCard, balanceOperation)
+
+    let topUp (currentDate: DateTimeOffset) card (topUp : MoneyTransaction) =
+        let topUpNotAllowed = operationNotAllowed "Top up"
+        if isCardExpired currentDate card then
+            cardExpiredMessage card.Number |> topUpNotAllowed
+        else
+        match card.AccountDetails with
+        | Deactivated -> cardDeactivatedMessage card.Number |> topUpNotAllowed
+        | Active accInfo ->
+            let newBalance = accInfo.Balance + topUp
+            let updatedCard = { card with AccountDetails = Active { accInfo with Balance = newBalance } }
+            let balanceOperation =
+                { Timestamp = currentDate
+                  NewBalance = newBalance
+                  CardNumber = card.Number
+                  BalanceChange = Increase topUp }
+            Ok (updatedCard, balanceOperation)
