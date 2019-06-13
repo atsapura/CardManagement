@@ -48,12 +48,12 @@ let main argv =
     let setDailyLimitModel =
         { SetDailyLimitCardCommandModel.UserId = userId
           Number = cardNumber
-          Limit = 0M}
+          Limit = 500M}
     let setLimitResult = CompositionRoot.setDailyLimit setDailyLimitModel |> Async.RunSynchronously
     let paymentModel =
         { ProcessPaymentCommandModel.Number = cardNumber
           UserId = userId
-          PaymentAmount = 100M}
+          PaymentAmount = 20M}
     let paymentResult = CompositionRoot.processPayment paymentModel |> Async.RunSynchronously
     Console.ReadLine() |> ignore
     0 // return an integer exit code

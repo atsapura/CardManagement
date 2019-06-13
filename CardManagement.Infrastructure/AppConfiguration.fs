@@ -6,6 +6,7 @@ module AppConfiguration =
     open System
     open CardManagement.Data.CardMongoConfiguration
     open Serilog
+    open Serilog.Sinks.SystemConsole.Themes
 
     let stringSetting defaultValue str = Option.ofObj str |> Option.defaultValue defaultValue
 
@@ -23,7 +24,7 @@ module AppConfiguration =
     let [<Literal>] logFormat = "[{Timestamp:dd/MM/yy HH:mm:ss.fff} {Level:u3}] {Message:lj}{NewLine}{Exception}"
 
     let configureLog() =
-        let logger = LoggerConfiguration().WriteTo.Console(outputTemplate = logFormat).CreateLogger()
+        let logger = LoggerConfiguration().WriteTo.Console(outputTemplate = logFormat, theme = AnsiConsoleTheme.Code).CreateLogger()
         Log.Logger <- logger
 
     let getMongoSettings (config: IConfigurationRoot) =

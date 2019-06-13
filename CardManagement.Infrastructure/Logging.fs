@@ -6,21 +6,23 @@ module Logging =
     open Errors
     open ErrorMessages
 
-    let logDataError e =
-        let errorMessage = dataRelatedErrorMessage e
+    let private funcFinishedWithError funcName = sprintf "%s finished with error: %s" funcName
+
+    let logDataError funcName e =
+        let errorMessage = dataRelatedErrorMessage e |> funcFinishedWithError funcName
         match e with
         | InvalidDbData d -> Log.Error errorMessage
         | _ -> Log.Warning errorMessage
 
-    let logValidationError e = validationMessage e |> Log.Information
+    let logValidationError funcName e = validationMessage e |> funcFinishedWithError funcName |> Log.Information
 
-    let logOperationNotAllowed e = operationNotAllowedMessage e |> Log.Warning
+    let logOperationNotAllowed funcName e = operationNotAllowedMessage e |> funcFinishedWithError funcName |> Log.Warning
 
-    let logError e =
+    let logError funcName e =
         match e with
-        | DataError e -> logDataError e
-        | ValidationError e -> logValidationError e
-        | OperationNotAllowed e -> logOperationNotAllowed e
+        | DataError e -> logDataError funcName e
+        | ValidationError e -> logValidationError funcName e
+        | OperationNotAllowed e -> logOperationNotAllowed funcName e
         | Bug _ ->
             let errorMessage = errorMessage e
             Log.Error(errorMessage)
@@ -38,12 +40,11 @@ module Logging =
             match result with
             | Ok ok -> sprintf "%s finished with result\n%A" funcName ok |> Log.Information
             | Error e ->
-                sprintf "%s finished with error:" funcName |> Log.Information
                 match box e with
-                | :? DataRelatedError as er -> logDataError er
-                | :? Error as er -> logError er
-                | :? ValidationError as er -> logValidationError er
-                | :? OperationNotAllowedError as er -> logOperationNotAllowed er
+                | :? DataRelatedError as er -> logDataError funcName er
+                | :? Error as er -> logError funcName er
+                | :? ValidationError as er -> logValidationError funcName er
+                | :? OperationNotAllowedError as er -> logOperationNotAllowed funcName er
                 | e -> sprintf "%A" e |> Log.Error
             return result
         }
