@@ -22,3 +22,13 @@ Database here is MongoDb, hosted in docker container.
 So you just have to navigate to `docker` folder and run `docker-compose up`. That's it.
 
 For web api `Giraffe` framework will be used. However now it's not there yet, so you have to run it from `CardManagement.Console` project for now.
+
+## Project overview
+
+There are several projects in this solution, in order of referencing:
+
+- CardManagement.Common. Self explainatory, I guess.
+- CardManagement. This is a business logic project, a core of this application. Domain types, actions and composition root for this layer
+- CardManagement.Data. Data access layer. Contains entities, db interaction functions and composition root for this layer.
+- CardManagement.Infrastructure. In here you'll find a global coposition root, logging, app configuration functions.
+- CardManagement.Console/CardManagement.Api. Entry point for using global composition root from infrastructure.
