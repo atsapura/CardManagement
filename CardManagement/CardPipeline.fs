@@ -115,9 +115,9 @@ module CardPipeline =
             }
 
     let setDailyLimit
-        (currentDate: DateTimeOffset)
         (getCardAsync: CardNumber -> IoResult<Card option>)
         (replaceCardAsync: Card -> IoResult<unit>)
+        (currentDate: DateTimeOffset)
         : SetDailyLimit =
             fun setDailyLimitCommand ->
                 asyncResult {
@@ -133,11 +133,11 @@ module CardPipeline =
                 }
 
     let processPayment
-        (currentDate: DateTimeOffset)
         (getCardAsync: CardNumber -> IoResult<Card option>)
         (getTodayOperations: CardNumber * DateTimeOffset * DateTimeOffset -> IoResult<BalanceOperation list>)
         (saveCardAsync: Card -> IoResult<unit>)
         (saveBalanceOperation: BalanceOperation -> IoResult<unit>)
+        (currentDate: DateTimeOffset)
         : ProcessPayment =
             fun processCommand ->
                 asyncResult {
@@ -160,10 +160,10 @@ module CardPipeline =
                 }
 
     let topUp
-        (currentDate: DateTimeOffset)
         (getCardAsync: CardNumber -> IoResult<Card option>)
         (saveCardAsync: Card -> IoResult<unit>)
         (saveBalanceOperation: BalanceOperation -> IoResult<unit>)
+        (currentDate: DateTimeOffset)
         : TopUp =
         fun cmd ->
         asyncResult {

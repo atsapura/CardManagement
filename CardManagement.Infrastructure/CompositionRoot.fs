@@ -102,7 +102,7 @@ module CompositionRoot =
         let getCardAsync = getCardAsync mongoDb
         let replaceCardAsync = replaceCardAsync mongoDb
         cmd
-        |> (CardPipeline.setDailyLimit DateTimeOffset.UtcNow getCardAsync replaceCardAsync
+        |> (CardPipeline.setDailyLimit getCardAsync replaceCardAsync DateTimeOffset.UtcNow
             |> logifyAsync "CardPipeline.getCard")
 
     let processPayment : ProcessPayment =
@@ -114,11 +114,11 @@ module CompositionRoot =
         let replaceCardAsync = replaceCardAsync mongoDb
         paymentModel
         |> (CardPipeline.processPayment
-                DateTimeOffset.UtcNow
                 getCardAsync
                 getBalanceOperationsAsync
                 replaceCardAsync
                 createBalanceOperationAsync
+                DateTimeOffset.UtcNow
             |> logifyAsync "CardPipeline.processPayment")
 
     let topUp : TopUp =
@@ -128,5 +128,5 @@ module CompositionRoot =
         let createBalanceOperationAsync = createBalanceOperationAsync mongoDb
         let replaceCardAsync = replaceCardAsync mongoDb
         topUpModel
-        |> (CardPipeline.topUp DateTimeOffset.UtcNow getCardAsync replaceCardAsync createBalanceOperationAsync
+        |> (CardPipeline.topUp getCardAsync replaceCardAsync createBalanceOperationAsync DateTimeOffset.UtcNow
             |> logifyAsync "CardPipeline.topUp")
