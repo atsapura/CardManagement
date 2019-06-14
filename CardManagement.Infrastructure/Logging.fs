@@ -1,5 +1,9 @@
 ﻿namespace CardManagement.Infrastructure
-
+(*
+All the logging is defined in here, except for configuration.
+The idea is simple: you use functions `logify` and `logifyAsync` to wrap functions you want to log.
+It will print start of function execution and execution result upon finishing.
+*)
 module Logging =
     open CardManagement.Common
     open Serilog

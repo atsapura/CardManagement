@@ -1,5 +1,14 @@
 ﻿namespace CardManagement.Infrastructure
-
+(*
+This is it. The final point, ultimate composition root of everything there is.
+Note, that since we are using `Result<'TOk, 'TError>`, it doesn't break application execution,
+unlike exceptions. This means that we can take care of error handling in here and use this root
+with whatever interface we deem fit: web api, console app, desctop app: just use functions from
+this module, provide input and it will do the rest.
+The only thing you have to take care of is `Exception`s, which now finally really represent that
+something went wrong and it's an unpredictable dangerous situation,
+and not something like "Oh boy, user provided invalid data".
+*)
 module CompositionRoot =
     open CardManagement
     open CardManagement.Common

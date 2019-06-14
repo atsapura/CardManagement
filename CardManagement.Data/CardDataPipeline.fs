@@ -1,5 +1,11 @@
 ﻿namespace CardManagement.Data
-
+(*
+This is a composition root for data access layer. It combines model mapping and DB interaction,
+So it provides nice API for business logic layer: now they you don't have to do mapping in there,
+BL layer doesn't even know about entities existence, there's even no reference to DAL project from BL.
+And since we are dealing with functions, you don't even have to create interfaces to decouple this layers:
+every function has it's signature as an interface.
+*)
 module CardDataPipeline =
     open CardManagement.Common.Errors
     open CardManagement.CardDomain

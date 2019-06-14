@@ -1,5 +1,8 @@
 ﻿namespace CardManagement.Data
-
+(*
+Here however when we map domain types to entities we don't expect any kind of error,
+because domain types are valid by their definition.
+*)
 module DomainToEntityMapping =
     open CardManagement
     open CardDomain

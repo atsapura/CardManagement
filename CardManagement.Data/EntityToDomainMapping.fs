@@ -1,5 +1,12 @@
 ﻿namespace CardManagement.Data
 
+(*
+In our domain types we use types like LetterString, CardNumber etc. with built-in validation.
+Those types enforce us to go through validation process, so now we have to validate our
+entities during mapping. Normally we shouldn't get any error during this.
+We might get it if someone changes data in DB to something invalid directly or if we change
+validation rules. In any case we should know about such errors.
+*)
 module EntityToDomainMapping =
     open CardManagement
     open CardDomain
@@ -9,6 +16,9 @@ module EntityToDomainMapping =
     open CardManagement.Common.CommonTypes
     open CardManagement.Common
 
+    // In here validation error means that invalid data was not provided by user, but instead
+    // it was in our system. So we change `ValidationError` to `InvalidDbDataError`, which is
+    // much more severe.
     let inline private mapValidationError (entity: ^a) (err: ValidationError)
         : InvalidDbDataError =
         { EntityId = entityId entity
