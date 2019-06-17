@@ -13,8 +13,6 @@ module ErrorMessages =
         | EntityIsInUse (name, id) -> entityDescription name id |> sprintf "%s is in use."
         | UpdateError (name, id, message) ->
             message |> (entityDescription name id |> sprintf "%s failed to update. Details:\n%s")
-        | InvalidDbData { EntityName = name; EntityId = id; Message = message } ->
-            message |> (entityDescription name id |> sprintf "%s is invalid. Details:\n%s")
 
     let validationMessage { FieldPath = path; Message = message } =
         sprintf "Field [%s] is invalid. Message: %s" path message

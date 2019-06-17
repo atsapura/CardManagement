@@ -37,48 +37,48 @@ module CompositionRoot =
     let private getMongoDb() = mongoSettings() |> CardMongoConfiguration.getDatabase
 
     let private getCardAsync mongoDb =
-        CardDataPipeline.getCardAsync mongoDb |> logifyAsync "CardDataPipeline.getCardAsync"
+        CardDataPipeline.getCardAsync mongoDb |> logifyPlainAsync "CardDataPipeline.getCardAsync"
 
     let private getCardWithAccInfoAsync mongoDb =
-        CardDataPipeline.getCardWithAccountInfoAsync mongoDb |> logifyAsync "CardDataPipeline.getCardWithAccountInfoAsync"
+        CardDataPipeline.getCardWithAccountInfoAsync mongoDb |> logifyPlainAsync "CardDataPipeline.getCardWithAccountInfoAsync"
 
     let private replaceCardAsync mongoDb =
-        CardDataPipeline.replaceCardAsync mongoDb |> logifyAsync "CardDataPipeline.replaceCardAsync"
+        CardDataPipeline.replaceCardAsync mongoDb |> logifyResultAsync "CardDataPipeline.replaceCardAsync"
 
     let private getBalanceOperationsAsync mongoDb =
-        CardDataPipeline.getBalanceOperationsAsync mongoDb |> logifyAsync "CardDataPipeline.getBalanceOperationsAsync"
+        CardDataPipeline.getBalanceOperationsAsync mongoDb |> logifyPlainAsync "CardDataPipeline.getBalanceOperationsAsync"
 
     let private createBalanceOperationAsync mongoDb =
-        CardDataPipeline.createBalanceOperationAsync mongoDb |> logifyAsync "CardDataPipeline.createBalanceOperationAsync"
+        CardDataPipeline.createBalanceOperationAsync mongoDb |> logifyResultAsync "CardDataPipeline.createBalanceOperationAsync"
 
     let createUser : CreateUser =
         fun userModel ->
         let mongoDb = getMongoDb()
         let userId = Guid.NewGuid()
-        let createUserAsync = CardDataPipeline.createUserAsync mongoDb |> logifyAsync "CardDataPipeline.createUserAsync"
+        let createUserAsync = CardDataPipeline.createUserAsync mongoDb |> logifyResultAsync "CardDataPipeline.createUserAsync"
         userModel
-        |> (CardPipeline.createUser userId createUserAsync |> logifyAsync "CardPipeline.createUser")
+        |> (CardPipeline.createUser userId createUserAsync |> logifyResultAsync "CardPipeline.createUser")
 
     let getUser : GetUser =
         fun userId ->
         let mongoDb = getMongoDb()
-        let getUserAsync = CardDataPipeline.getUserWithCards mongoDb |> logifyAsync "CardDataPipeline.getUserWithCardsAsync"
+        let getUserAsync = CardDataPipeline.getUserWithCards mongoDb |> logifyPlainAsync "CardDataPipeline.getUserWithCardsAsync"
         userId
-        |> (CardPipeline.getUser getUserAsync |> logifyAsync "CardPipeline.getCard")
+        |> (CardPipeline.getUser getUserAsync |> logifyResultAsync "CardPipeline.getCard")
 
     let createCard : CreateCard =
         fun cardModel ->
         let mongoDb = getMongoDb()
-        let createCardAsync = CardDataPipeline.createCardAsync mongoDb |> logifyAsync "CardDataPipeline.createCardAsync"
+        let createCardAsync = CardDataPipeline.createCardAsync mongoDb |> logifyResultAsync "CardDataPipeline.createCardAsync"
         cardModel
-        |> (CardPipeline.createCard createCardAsync |> logifyAsync "CardPipeline.createCard")
+        |> (CardPipeline.createCard createCardAsync |> logifyResultAsync "CardPipeline.createCard")
 
     let getCard : GetCard =
         fun cardNumber ->
         let mongoDb = getMongoDb()
         let getCardAsync = getCardAsync mongoDb
         cardNumber
-        |> (CardPipeline.getCard getCardAsync |> logifyAsync "CardPipeline.getCard")
+        |> (CardPipeline.getCard getCardAsync |> logifyResultAsync "CardPipeline.getCard")
 
     let activateCard : ActivateCard =
         fun activateCardCmd ->
@@ -86,7 +86,7 @@ module CompositionRoot =
         let getCardAsync = getCardWithAccInfoAsync mongoDb 
         let replaceCardAsync = replaceCardAsync mongoDb
         activateCardCmd
-        |> (CardPipeline.activateCard getCardAsync replaceCardAsync |> logifyAsync "CardPipeline.activateCard")
+        |> (CardPipeline.activateCard getCardAsync replaceCardAsync |> logifyResultAsync "CardPipeline.activateCard")
 
     let deactivateCard : DeactivateCard =
         fun deactivateCardCmd ->
@@ -94,7 +94,7 @@ module CompositionRoot =
         let getCardAsync = getCardAsync mongoDb
         let replaceCardAsync = replaceCardAsync mongoDb
         deactivateCardCmd
-        |> (CardPipeline.deactivateCard getCardAsync replaceCardAsync |> logifyAsync "CardPipeline.deactivateCard")
+        |> (CardPipeline.deactivateCard getCardAsync replaceCardAsync |> logifyResultAsync "CardPipeline.deactivateCard")
 
     let setDailyLimit : SetDailyLimit =
         fun cmd ->
@@ -103,7 +103,7 @@ module CompositionRoot =
         let replaceCardAsync = replaceCardAsync mongoDb
         cmd
         |> (CardPipeline.setDailyLimit getCardAsync replaceCardAsync DateTimeOffset.UtcNow
-            |> logifyAsync "CardPipeline.getCard")
+            |> logifyResultAsync "CardPipeline.getCard")
 
     let processPayment : ProcessPayment =
         fun paymentModel ->
@@ -119,7 +119,7 @@ module CompositionRoot =
                 replaceCardAsync
                 createBalanceOperationAsync
                 DateTimeOffset.UtcNow
-            |> logifyAsync "CardPipeline.processPayment")
+            |> logifyResultAsync "CardPipeline.processPayment")
 
     let topUp : TopUp =
         fun topUpModel ->
@@ -129,4 +129,4 @@ module CompositionRoot =
         let replaceCardAsync = replaceCardAsync mongoDb
         topUpModel
         |> (CardPipeline.topUp getCardAsync replaceCardAsync createBalanceOperationAsync DateTimeOffset.UtcNow
-            |> logifyAsync "CardPipeline.topUp")
+            |> logifyResultAsync "CardPipeline.topUp")

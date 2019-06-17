@@ -18,11 +18,11 @@ module CardDataPipeline =
     type CreateUserAsync = UserInfo -> IoResult<unit>
     type ReplaceCardAsync = Card -> IoResult<unit>
     type ReplaceUserAsync = UserInfo -> IoResult<unit>
-    type GetUserInfoAsync = UserId -> IoResult<UserInfo option>
-    type GetUserWithCardsAsync = UserId -> IoResult<User option>
-    type GetCardAsync = CardNumber -> IoResult<Card option>
-    type GetCardWithAccinfoAsync = CardNumber -> IoResult<(Card*AccountInfo) option>
-    type GetBalanceOperationsAsync = CardNumber * DateTimeOffset * DateTimeOffset -> IoResult<BalanceOperation list>
+    type GetUserInfoAsync = UserId -> IoQueryResult<UserInfo>
+    type GetUserWithCardsAsync = UserId -> IoQueryResult<User>
+    type GetCardAsync = CardNumber -> IoQueryResult<Card>
+    type GetCardWithAccinfoAsync = CardNumber -> IoQueryResult<(Card*AccountInfo)>
+    type GetBalanceOperationsAsync = CardNumber * DateTimeOffset * DateTimeOffset -> Async<BalanceOperation list>
     type CreateBalanceOperationAsync = BalanceOperation -> IoResult<unit>
 
     let createCardAsync (mongoDb: MongoDb) : CreateCardAsync =
@@ -55,13 +55,7 @@ module CardDataPipeline =
         fun userId ->
         async {
             let! userInfo = QueryRepository.getUserInfoAsync mongoDb userId
-            return
-                match userInfo with
-                | None -> Ok None
-                | Some userInfo ->
-                    EntityToDomainMapping.mapUserInfoEntity userInfo
-                    |> Result.map Some
-                    |> Result.mapError InvalidDbData
+            return userInfo |> Option.map EntityToDomainMapping.mapUserInfoEntity
         }
 
     let getUserWithCards (mongoDb: MongoDb) : GetUserWithCardsAsync =
@@ -70,22 +64,15 @@ module CardDataPipeline =
             let! userInfo = getUserInfoAsync mongoDb userId
             return!
                 match userInfo with
-                | Ok None -> Ok None |> async.Return
-                | Error e -> Error e |> async.Return
-                | Ok (Some userInfo) ->
+                | None -> None |> async.Return
+                | Some userInfo ->
                     async {
                         let! cardList = QueryRepository.getUserCardsAsync mongoDb userId
+                        let cards = List.map EntityToDomainMapping.mapCardEntity cardList
                         let user =
-                            result {
-                                let! cards =
-                                    List.map EntityToDomainMapping.mapCardEntity cardList
-                                    |> Result.combine
-                                return
-                                    { UserInfo = userInfo
-                                      Cards = cards |> Set.ofList }
-                                    |> Some
-                            } |> Result.mapError InvalidDbData
-                        return user
+                            { UserInfo = userInfo
+                              Cards = cards |> Set.ofList }
+                        return Some user
                     }
         }
 
@@ -93,26 +80,14 @@ module CardDataPipeline =
         fun cardNumber ->
         async {
             let! card = QueryRepository.getCardAsync mongoDb cardNumber.Value
-            return
-                match card with
-                | None -> Ok None
-                | Some (card, accountInfo) ->
-                    (card, accountInfo) |> EntityToDomainMapping.mapCardEntity
-                    |> Result.map Some
-                    |> Result.mapError InvalidDbData
+            return card |> Option.map EntityToDomainMapping.mapCardEntity
         }
 
     let getCardWithAccountInfoAsync (mongoDb: MongoDb) : GetCardWithAccinfoAsync =
         fun cardNumber ->
         async {
             let! card = QueryRepository.getCardAsync mongoDb cardNumber.Value
-            return
-                match card with
-                | None -> Ok None
-                | Some (card, accountInfo) ->
-                    (card, accountInfo) |> EntityToDomainMapping.mapCardEntityWithAccountInfo
-                    |> Result.map Some
-                    |> Result.mapError InvalidDbData
+            return card |> Option.map EntityToDomainMapping.mapCardEntityWithAccountInfo
         }
 
     let getBalanceOperationsAsync (mongoDb: MongoDb) : GetBalanceOperationsAsync =
@@ -120,8 +95,6 @@ module CardDataPipeline =
         async {
             let! operations = QueryRepository.getBalanceOperationsAsync mongoDb (cardNumber.Value, fromDate, toDate)
             return List.map EntityToDomainMapping.mapBalanceOperationEntity operations
-                |> Result.combine
-                |> Result.mapError InvalidDbData
         }
 
     let createBalanceOperationAsync (mongoDb: MongoDb) : CreateBalanceOperationAsync =

@@ -50,7 +50,7 @@ module CardPipeline =
     IoResult<'T> however tells us that the only expectable error here is `DataRelatedError`.
     So there's no validation going on there nor there's a business logic.
     *)
-    let getCard (getCardAsync: CardNumber -> IoResult<Card option>) : GetCard =
+    let getCard (getCardAsync: CardNumber -> IoQueryResult<Card>) : GetCard =
         fun cardNumber ->
             asyncResult {
                 // let! is like `await` in C#, but more powerful: when `await` basically works only with `Task`,
@@ -60,7 +60,7 @@ module CardPipeline =
                 // those functions `expectValidationError` and `expectDataRelatedErrorAsync`
                 // map specific error types like `ValidationError` to on final `Error`, otherwise code won't compile.
                 // they also tell you what kind of error you should expect on every step. Nice!
-                let! card = getCardAsync cardNumber |> expectDataRelatedErrorAsync
+                let! card = getCardAsync cardNumber 
                 return card |> Option.map toCardInfoModel
             }
 
@@ -73,22 +73,22 @@ module CardPipeline =
                 return card |> Option.map toCardDetailsModel
             }
 
-    let getUser (getUserAsync: UserId -> IoResult<User option>) : GetUser =
+    let getUser (getUserAsync: UserId -> IoQueryResult<User>) : GetUser =
         fun userId ->
             asyncResult {
-                let! user = getUserAsync userId |> expectDataRelatedErrorAsync
+                let! user = getUserAsync userId
                 return user |> Option.map toUserModel
             }
 
     let activateCard
-        (getCardWithAccountInfoAsync: CardNumber -> IoResult<(Card*AccountInfo) option>)
+        (getCardWithAccountInfoAsync: CardNumber -> IoQueryResult<(Card*AccountInfo)>)
         (replaceCardAsync: Card -> IoResult<unit>)
         : ActivateCard =
         fun activateCommand ->
             asyncResult {
                 let! validCommand =
                     activateCommand |> validateActivateCardCommand |> expectValidationError
-                let! maybeCard = validCommand.CardNumber |> getCardWithAccountInfoAsync |> expectDataRelatedErrorAsync
+                let! maybeCard = validCommand.CardNumber |> getCardWithAccountInfoAsync
                 let! (card, accountInfo) = noneToError maybeCard validCommand.CardNumber.Value |> expectDataRelatedError
                 let activeCard =
                     match card.AccountDetails with
@@ -99,7 +99,7 @@ module CardPipeline =
             }
 
     let deactivateCard
-        (getCardAsync: CardNumber -> IoResult<Card option>)
+        (getCardAsync: CardNumber -> IoQueryResult<Card>)
         (replaceCardAsync: Card -> IoResult<unit>)
         : DeactivateCard =
         fun deactivateCommand ->
@@ -107,7 +107,7 @@ module CardPipeline =
                 let! validCommand =
                     deactivateCommand |> validateDeactivateCardCommand
                     |> expectValidationError
-                let! maybeCard = validCommand.CardNumber |> getCardAsync |> expectDataRelatedErrorAsync
+                let! maybeCard = validCommand.CardNumber |> getCardAsync
                 let! card = noneToError maybeCard validCommand.CardNumber.Value |> expectDataRelatedError
                 let deactivatedCard = deactivate card
                 do! replaceCardAsync deactivatedCard |> expectDataRelatedErrorAsync
@@ -115,7 +115,7 @@ module CardPipeline =
             }
 
     let setDailyLimit
-        (getCardAsync: CardNumber -> IoResult<Card option>)
+        (getCardAsync: CardNumber -> IoQueryResult<Card>)
         (replaceCardAsync: Card -> IoResult<unit>)
         (currentDate: DateTimeOffset)
         : SetDailyLimit =
@@ -123,7 +123,7 @@ module CardPipeline =
                 asyncResult {
                     let! validCommand =
                         setDailyLimitCommand |> validateSetDailyLimitCommand |> expectValidationError
-                    let! maybeCard = getCardAsync validCommand.CardNumber |> expectDataRelatedErrorAsync
+                    let! maybeCard = getCardAsync validCommand.CardNumber
                     let! card = noneToError maybeCard validCommand.CardNumber.Value |> expectDataRelatedError
                     let! updatedCard =
                         setDailyLimit currentDate validCommand.DailyLimit card
@@ -133,8 +133,8 @@ module CardPipeline =
                 }
 
     let processPayment
-        (getCardAsync: CardNumber -> IoResult<Card option>)
-        (getTodayOperations: CardNumber * DateTimeOffset * DateTimeOffset -> IoResult<BalanceOperation list>)
+        (getCardAsync: CardNumber -> IoQueryResult<Card>)
+        (getTodayOperations: CardNumber * DateTimeOffset * DateTimeOffset -> Async<BalanceOperation list>)
         (saveCardAsync: Card -> IoResult<unit>)
         (saveBalanceOperation: BalanceOperation -> IoResult<unit>)
         (currentDate: DateTimeOffset)
@@ -144,12 +144,11 @@ module CardPipeline =
                     let! validCommand =
                         processCommand |> validateProcessPaymentCommand |> expectValidationError
                     let cardNumber = validCommand.CardNumber
-                    let! maybeCard = getCardAsync cardNumber |> expectDataRelatedErrorAsync
+                    let! maybeCard = getCardAsync cardNumber
                     let! card = noneToError maybeCard validCommand.CardNumber.Value |> expectDataRelatedError
                     let today = currentDate.Date |> DateTimeOffset
                     let tomorrow = currentDate.Date.AddDays(1.) |> DateTimeOffset
-                    let! todayOperations =
-                        getTodayOperations (validCommand.CardNumber, today, tomorrow) |> expectDataRelatedErrorAsync
+                    let! todayOperations = getTodayOperations (validCommand.CardNumber, today, tomorrow)
                     let spentToday = BalanceOperation.spentAtDate currentDate validCommand.CardNumber todayOperations
                     let! (card, balanceOperation) =
                         processPayment currentDate spentToday card validCommand.PaymentAmount
@@ -160,7 +159,7 @@ module CardPipeline =
                 }
 
     let topUp
-        (getCardAsync: CardNumber -> IoResult<Card option>)
+        (getCardAsync: CardNumber -> IoQueryResult<Card>)
         (saveCardAsync: Card -> IoResult<unit>)
         (saveBalanceOperation: BalanceOperation -> IoResult<unit>)
         (currentDate: DateTimeOffset)
@@ -168,7 +167,7 @@ module CardPipeline =
         fun cmd ->
         asyncResult {
             let! topUpCmd = validateTopUpCommand cmd |> expectValidationError
-            let! maybeCard = getCardAsync topUpCmd.CardNumber |> expectDataRelatedErrorAsync
+            let! maybeCard = getCardAsync topUpCmd.CardNumber
             let! card = noneToError maybeCard topUpCmd.CardNumber.Value |> expectDataRelatedError
             let! (updatedCard, balanceOperation) =
                 topUp currentDate card topUpCmd.TopUpAmount |> expectOperationNotAllowedError
