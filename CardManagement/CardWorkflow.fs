@@ -14,8 +14,6 @@ module CardWorkflow =
         | ReplaceCard of Card * (Result<unit, DataRelatedError> -> Program<'a>)
         | GetUser of UserId * (User option -> Program<'a>)
         | CreateUser of UserInfo * (Result<unit, DataRelatedError> -> Program<'a>)
-        //| GetAccountInfo of CardNumber * (AccountInfo option -> Program<'a>)
-        //| ReplaceAccountInfo of AccountInfo * (Result<unit, DataRelatedError> -> Program<'a>)
         | GetBalanceOperations of (CardNumber * DateTimeOffset * DateTimeOffset) * (BalanceOperation list -> Program<'a>)
         | SaveBalanceOperation of BalanceOperation * (Result<unit, DataRelatedError> -> Program<'a>)
         | Stop of 'a
@@ -27,8 +25,6 @@ module CardWorkflow =
         | ReplaceCard (x, next) -> ReplaceCard (x, (next >> bind f))
         | GetUser (x, next) -> GetUser (x,(next >> bind f))
         | CreateUser (x, next) -> CreateUser (x,(next >> bind f))
-        //| GetAccountInfo (x, next) -> GetAccountInfo (x,(next >> bind f))
-        //| ReplaceAccountInfo (x, next) -> ReplaceAccountInfo (x,(next >> bind f))
         | GetBalanceOperations (x, next) -> GetBalanceOperations (x,(next >> bind f))
         | SaveBalanceOperation (x, next) -> SaveBalanceOperation (x,(next >> bind f))
         | Stop x -> f x
@@ -39,8 +35,6 @@ module CardWorkflow =
     let replaceCard card = ReplaceCard (card, stop)
     let getUser id = GetUser (id, stop)
     let saveUser user = CreateUser (user, stop)
-    //let getAccountInfo number = GetAccountInfo (number, stop)
-    //let saveAccountInfo number = ReplaceAccountInfo (number, stop)
     let getBalanceOperations (number, fromDate, toDate) = GetBalanceOperations ((number, fromDate, toDate), stop)
     let saveBalanceOperation op = SaveBalanceOperation (op, stop)
 
