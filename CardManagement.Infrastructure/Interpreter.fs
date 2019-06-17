@@ -44,6 +44,11 @@ module Interpreter =
                 let! maybeCard = cardNumber |> getCardAsync mongoDb
                 return! maybeCard |> next |> interpretCardProgram 
             }
+        | GetCardWithAccountInfo (number, next) ->
+            async {
+                let! maybe = number |> getCardWithAccInfoAsync mongoDb
+                return! maybe |> next |> interpretCardProgram
+            }
         | CreateCard ((card,acc), next) ->
             async {
                 let! createResult = (card, acc) |> createCardAsync mongoDb

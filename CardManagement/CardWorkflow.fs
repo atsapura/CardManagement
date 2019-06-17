@@ -10,6 +10,7 @@ module CardWorkflow =
 
     type Program<'a> =
         | GetCard of CardNumber * (Card option -> Program<'a>)
+        | GetCardWithAccountInfo of CardNumber * ((Card*AccountInfo) option -> Program<'a>)
         | CreateCard of (Card*AccountInfo) * (Result<unit, DataRelatedError> -> Program<'a>)
         | ReplaceCard of Card * (Result<unit, DataRelatedError> -> Program<'a>)
         | GetUser of UserId * (User option -> Program<'a>)
@@ -21,6 +22,7 @@ module CardWorkflow =
     let rec bind f instruction =
         match instruction with
         | GetCard (x, next) -> GetCard (x, (next >> bind f))
+        | GetCardWithAccountInfo (x, next) -> GetCardWithAccountInfo (x, (next >> bind f))
         | CreateCard (x, next) -> CreateCard (x, (next >> bind f))
         | ReplaceCard (x, next) -> ReplaceCard (x, (next >> bind f))
         | GetUser (x, next) -> GetUser (x,(next >> bind f))
@@ -31,6 +33,7 @@ module CardWorkflow =
 
     let stop x = Stop x
     let getCard number = GetCard (number, stop)
+    let getCardWithAccountInfo number = GetCardWithAccountInfo (number, stop)
     let createCard (card, acc) = CreateCard ((card, acc), stop)
     let replaceCard card = ReplaceCard (card, stop)
     let getUser id = GetUser (id, stop)
@@ -48,7 +51,7 @@ module CardWorkflow =
             let f x =
                 match x with
                 | Ok x -> this.ReturnFrom (f x)
-                | Error e -> this.Return (Error e |> expectDataRelatedError)
+                | Error e -> this.Return (Error e )
             this.Bind(x, f)
         member __.Return x = Stop x
         member __.Zero () = Stop ()
@@ -56,10 +59,16 @@ module CardWorkflow =
 
     let program = ProgramBuilder()
 
+    let expectDataRelatedErrorProgram (p: Program<Result<_,DataRelatedError>>) =
+        program {
+            let! result = p
+            return expectDataRelatedError result
+        }
+
     let private noneToError (a: 'a option) id =
         let error = EntityNotFound (sprintf "%sEntity" typeof<'a>.Name, id)
         Result.ofOption error a
-    
+
     let processPayment (currentDate: DateTimeOffset) payment =
         program {
             let! cmd = validateProcessPaymentCommand payment |> expectValidationError
@@ -72,7 +81,48 @@ module CardWorkflow =
             let! (card, op) =
                 CardActions.processPayment currentDate spentToday card cmd.PaymentAmount
                 |> expectOperationNotAllowedError
-            do! saveBalanceOperation op
-            do! replaceCard card
+            do! saveBalanceOperation op |> expectDataRelatedErrorProgram
+            do! replaceCard card |> expectDataRelatedErrorProgram
+            return card |> toCardInfoModel |> Ok
+        }
+
+    let setDailyLimit (currentDate: DateTimeOffset) setDailyLimitCommand =
+        program {
+            let! cmd = validateSetDailyLimitCommand setDailyLimitCommand |> expectValidationError
+            let! card = getCard cmd.CardNumber
+            let! card = noneToError card cmd.CardNumber.Value |> expectDataRelatedError
+            let! card = CardActions.setDailyLimit currentDate cmd.DailyLimit card |> expectOperationNotAllowedError
+            do! replaceCard card |> expectDataRelatedErrorProgram
+            return card |> toCardInfoModel |> Ok
+        }
+
+    let topUp (currentDate: DateTimeOffset) topUpCmd =
+        program {
+            let! cmd = validateTopUpCommand topUpCmd |> expectValidationError
+            let! card = getCard cmd.CardNumber
+            let! card = noneToError card cmd.CardNumber.Value |> expectDataRelatedError
+            let! (card, op) = CardActions.topUp currentDate card cmd.TopUpAmount |> expectOperationNotAllowedError
+            do! saveBalanceOperation op |> expectDataRelatedErrorProgram
+            do! replaceCard card |> expectDataRelatedErrorProgram
+            return card |> toCardInfoModel |> Ok
+        }
+
+    let activateCard activateCmd =
+        program {
+            let! cmd = validateActivateCardCommand activateCmd |> expectValidationError
+            let! result = getCardWithAccountInfo cmd.CardNumber
+            let! (card, accInfo) = noneToError result cmd.CardNumber.Value |> expectDataRelatedError
+            let card = CardActions.activate accInfo card
+            do! replaceCard card |> expectDataRelatedErrorProgram
+            return card |> toCardInfoModel |> Ok
+        }
+
+    let deactivateCard deactivateCmd =
+        program {
+            let! cmd = validateDeactivateCardCommand deactivateCmd |> expectValidationError
+            let! card = getCard cmd.CardNumber
+            let! card = noneToError card cmd.CardNumber.Value |> expectDataRelatedError
+            let card = CardActions.deactivate card
+            do! replaceCard card |> expectDataRelatedErrorProgram
             return card |> toCardInfoModel |> Ok
         }
