@@ -79,5 +79,6 @@ module CardWorkflow =
                 CardActions.processPayment currentDate spentToday card cmd.PaymentAmount
                 |> expectOperationNotAllowedError
             do! saveBalanceOperation op
+            do! replaceCard card
             return card |> toCardInfoModel |> Ok
         }

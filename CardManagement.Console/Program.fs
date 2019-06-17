@@ -28,11 +28,12 @@ let main argv =
     let paymentModel =
         { ProcessPaymentCommandModel.Number = cardNumber
           UserId = userId
-          PaymentAmount = 20M}
+          PaymentAmount = 400M}
     //let paymentResult = CompositionRoot.processPayment paymentModel |> Async.RunSynchronously
     let result =
         CardWorkflow.processPayment DateTimeOffset.UtcNow paymentModel
         |> Interpreter.interpretCardProgram
         |> Async.RunSynchronously
+    printfn "FINISHED!\n%A" result
     Console.ReadLine() |> ignore
     0 // return an integer exit code
