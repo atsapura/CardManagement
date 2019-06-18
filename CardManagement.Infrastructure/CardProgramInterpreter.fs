@@ -57,3 +57,7 @@ module CardProgramInterpreter =
     let interpret funcName prog =
         let interpret = interpretCardProgram (getMongoDb()) |> logifyResultAsync funcName
         interpret prog
+
+    let interpretSimple funcName prog =
+        let interpret = interpretCardProgram (getMongoDb()) |> logifyPlainAsync funcName
+        interpret prog

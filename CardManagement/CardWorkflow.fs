@@ -31,15 +31,21 @@ module CardWorkflow =
         | SaveBalanceOperation (x, next) -> SaveBalanceOperation (x,(next >> bind f))
         | Stop x -> f x
 
-    let stop x = Stop x
-    let getCard number = GetCard (number, stop)
-    let getCardWithAccountInfo number = GetCardWithAccountInfo (number, stop)
-    let createCard (card, acc) = CreateCard ((card, acc), stop)
-    let replaceCard card = ReplaceCard (card, stop)
-    let getUser id = GetUser (id, stop)
-    let saveUser user = CreateUser (user, stop)
-    let getBalanceOperations (number, fromDate, toDate) = GetBalanceOperations ((number, fromDate, toDate), stop)
-    let saveBalanceOperation op = SaveBalanceOperation (op, stop)
+    let private stop x = Stop x
+    let private getCardByNumber number = GetCard (number, stop)
+    let private getCardWithAccountInfo number = GetCardWithAccountInfo (number, stop)
+    let private createNewCard (card, acc) = CreateCard ((card, acc), stop)
+    let private replaceCard card = ReplaceCard (card, stop)
+    let private getUserById id = GetUser (id, stop)
+    let private createNewUser user = CreateUser (user, stop)
+    let private getBalanceOperations (number, fromDate, toDate) = GetBalanceOperations ((number, fromDate, toDate), stop)
+    let private saveBalanceOperation op = SaveBalanceOperation (op, stop)
+
+    type SimpleProgramBuilder() =
+        member __.Bind (x, f) = bind f x
+        member __.Return x = Stop x
+        member __.Zero () = Stop ()
+        member __.ReturnFrom x = x
 
     type ProgramBuilder() =
         member __.Bind (x, f) = bind f x
@@ -58,6 +64,7 @@ module CardWorkflow =
         member __.ReturnFrom x = x
 
     let program = ProgramBuilder()
+    let simpleProgram = SimpleProgramBuilder()
 
     let expectDataRelatedErrorProgram (p: Program<Result<_,DataRelatedError>>) =
         program {
@@ -72,7 +79,7 @@ module CardWorkflow =
     let processPayment (currentDate: DateTimeOffset) payment =
         program {
             let! cmd = validateProcessPaymentCommand payment |> expectValidationError
-            let! card = getCard cmd.CardNumber
+            let! card = getCardByNumber cmd.CardNumber
             let! card = noneToError card cmd.CardNumber.Value |> expectDataRelatedError
             let today = currentDate.Date |> DateTimeOffset
             let tomorrow = currentDate.Date.AddDays 1. |> DateTimeOffset
@@ -89,7 +96,7 @@ module CardWorkflow =
     let setDailyLimit (currentDate: DateTimeOffset) setDailyLimitCommand =
         program {
             let! cmd = validateSetDailyLimitCommand setDailyLimitCommand |> expectValidationError
-            let! card = getCard cmd.CardNumber
+            let! card = getCardByNumber cmd.CardNumber
             let! card = noneToError card cmd.CardNumber.Value |> expectDataRelatedError
             let! card = CardActions.setDailyLimit currentDate cmd.DailyLimit card |> expectOperationNotAllowedError
             do! replaceCard card |> expectDataRelatedErrorProgram
@@ -99,7 +106,7 @@ module CardWorkflow =
     let topUp (currentDate: DateTimeOffset) topUpCmd =
         program {
             let! cmd = validateTopUpCommand topUpCmd |> expectValidationError
-            let! card = getCard cmd.CardNumber
+            let! card = getCardByNumber cmd.CardNumber
             let! card = noneToError card cmd.CardNumber.Value |> expectDataRelatedError
             let! (card, op) = CardActions.topUp currentDate card cmd.TopUpAmount |> expectOperationNotAllowedError
             do! saveBalanceOperation op |> expectDataRelatedErrorProgram
@@ -120,9 +127,39 @@ module CardWorkflow =
     let deactivateCard deactivateCmd =
         program {
             let! cmd = validateDeactivateCardCommand deactivateCmd |> expectValidationError
-            let! card = getCard cmd.CardNumber
+            let! card = getCardByNumber cmd.CardNumber
             let! card = noneToError card cmd.CardNumber.Value |> expectDataRelatedError
             let card = CardActions.deactivate card
             do! replaceCard card |> expectDataRelatedErrorProgram
             return card |> toCardInfoModel |> Ok
+        }
+
+    let createUser userId createUserCommand =
+        program {
+            let! userInfo = validateCreateUserCommand userId createUserCommand |> expectValidationError
+            do! createNewUser userInfo |> expectDataRelatedErrorProgram
+            return
+                { UserInfo = userInfo
+                  Cards = Set.empty } |> toUserModel |> Ok
+        }
+
+    let createCard cardCommand =
+        program {
+            let! card = validateCreateCardCommand cardCommand |> expectValidationError
+            let accountInfo = AccountInfo.Default cardCommand.UserId
+            do! createNewCard (card, accountInfo) |> expectDataRelatedErrorProgram
+            return card |> toCardInfoModel |> Ok
+        }
+
+    let getCard cardNumber =
+        program {
+            let! cardNumber = CardNumber.create "cardNumber" cardNumber |> expectValidationError
+            let! card = getCardByNumber cardNumber
+            return card |> Option.map toCardInfoModel |> Ok
+        }
+
+    let getUser userId =
+        simpleProgram {
+            let! maybeUser = getUserById userId
+            return maybeUser |> Option.map toUserModel
         }
