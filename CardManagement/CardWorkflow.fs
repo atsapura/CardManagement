@@ -76,11 +76,17 @@ module CardWorkflow =
         let error = EntityNotFound (sprintf "%sEntity" typeof<'a>.Name, id)
         Result.ofOption error a
 
+    let private getCardOrNotFoundError cardNumber =
+        program {
+            let! card = getCardByNumber cardNumber
+            let! card = noneToError card cardNumber.Value |> expectDataRelatedError
+            return Ok card
+        }
+
     let processPayment (currentDate: DateTimeOffset) payment =
         program {
             let! cmd = validateProcessPaymentCommand payment |> expectValidationError
-            let! card = getCardByNumber cmd.CardNumber
-            let! card = noneToError card cmd.CardNumber.Value |> expectDataRelatedError
+            let! card = getCardOrNotFoundError cmd.CardNumber
             let today = currentDate.Date |> DateTimeOffset
             let tomorrow = currentDate.Date.AddDays 1. |> DateTimeOffset
             let! operations = getBalanceOperations (cmd.CardNumber, today, tomorrow)
@@ -96,8 +102,7 @@ module CardWorkflow =
     let setDailyLimit (currentDate: DateTimeOffset) setDailyLimitCommand =
         program {
             let! cmd = validateSetDailyLimitCommand setDailyLimitCommand |> expectValidationError
-            let! card = getCardByNumber cmd.CardNumber
-            let! card = noneToError card cmd.CardNumber.Value |> expectDataRelatedError
+            let! card = getCardOrNotFoundError cmd.CardNumber
             let! card = CardActions.setDailyLimit currentDate cmd.DailyLimit card |> expectOperationNotAllowedError
             do! replaceCard card |> expectDataRelatedErrorProgram
             return card |> toCardInfoModel |> Ok
@@ -106,8 +111,7 @@ module CardWorkflow =
     let topUp (currentDate: DateTimeOffset) topUpCmd =
         program {
             let! cmd = validateTopUpCommand topUpCmd |> expectValidationError
-            let! card = getCardByNumber cmd.CardNumber
-            let! card = noneToError card cmd.CardNumber.Value |> expectDataRelatedError
+            let! card = getCardOrNotFoundError cmd.CardNumber
             let! (card, op) = CardActions.topUp currentDate card cmd.TopUpAmount |> expectOperationNotAllowedError
             do! saveBalanceOperation op |> expectDataRelatedErrorProgram
             do! replaceCard card |> expectDataRelatedErrorProgram
@@ -127,8 +131,7 @@ module CardWorkflow =
     let deactivateCard deactivateCmd =
         program {
             let! cmd = validateDeactivateCardCommand deactivateCmd |> expectValidationError
-            let! card = getCardByNumber cmd.CardNumber
-            let! card = noneToError card cmd.CardNumber.Value |> expectDataRelatedError
+            let! card = getCardOrNotFoundError cmd.CardNumber
             let card = CardActions.deactivate card
             do! replaceCard card |> expectDataRelatedErrorProgram
             return card |> toCardInfoModel |> Ok
