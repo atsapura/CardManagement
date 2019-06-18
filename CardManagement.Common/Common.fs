@@ -14,3 +14,8 @@ module Common =
         if arg = null || (length arg) = 0 then true
         else false
 
+    let mapAsync f a =
+        async {
+            let! a = a
+            return! f a
+        }

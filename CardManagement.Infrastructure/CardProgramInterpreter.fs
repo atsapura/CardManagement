@@ -1,13 +1,11 @@
 ﻿namespace CardManagement.Infrastructure
 
-module Interpreter =
+module CardProgramInterpreter =
     open CardManagement
     open CardManagement.Common
-    open Errors
     open Logging
     open CardWorkflow
     open CardManagement.Data
-    open FsToolkit.ErrorHandling
 
     let private mongoSettings() = AppConfiguration.buildConfig() |> AppConfiguration.getMongoSettings
     let private getMongoDb() = mongoSettings() |> CardMongoConfiguration.getDatabase
@@ -36,47 +34,26 @@ module Interpreter =
     let private createUserAsync mongoDb =
         CardDataPipeline.createUserAsync mongoDb |> logifyResultAsync "CardDataPipeline.createUserAsync"
 
-    let rec interpretCardProgram prog =
-        let mongoDb = getMongoDb()
+    let rec private interpretCardProgram mongoDb prog =
         match prog with
         | GetCard (cardNumber, next) ->
-            async {
-                let! maybeCard = cardNumber |> getCardAsync mongoDb
-                return! maybeCard |> next |> interpretCardProgram 
-            }
+            cardNumber |> getCardAsync mongoDb |> mapAsync (next >> interpretCardProgram mongoDb)
         | GetCardWithAccountInfo (number, next) ->
-            async {
-                let! maybe = number |> getCardWithAccInfoAsync mongoDb
-                return! maybe |> next |> interpretCardProgram
-            }
+            number |> getCardWithAccInfoAsync mongoDb |> mapAsync (next >> interpretCardProgram mongoDb)
         | CreateCard ((card,acc), next) ->
-            async {
-                let! createResult = (card, acc) |> createCardAsync mongoDb
-                return! createResult |> next |> interpretCardProgram
-            }
+            (card, acc) |> createCardAsync mongoDb |> mapAsync (next >> interpretCardProgram mongoDb)
         | ReplaceCard (card, next) ->
-            async {
-                let! result = card |> replaceCardAsync mongoDb
-                return! result |> next |> interpretCardProgram
-            }
+            card |> replaceCardAsync mongoDb |> mapAsync (next >> interpretCardProgram mongoDb)
         | GetUser (id, next) ->
-            async {
-                let! maybeUser = getUserAsync mongoDb id
-                return! maybeUser |> next |> interpretCardProgram
-            }
+            getUserAsync mongoDb id |> mapAsync (next >> interpretCardProgram mongoDb)
         | CreateUser (user, next) ->
-            async {
-                let! result = user |> createUserAsync mongoDb
-                return! result |> next |> interpretCardProgram
-            }
+            user |> createUserAsync mongoDb |> mapAsync (next >> interpretCardProgram mongoDb)
         | GetBalanceOperations (request, next) ->
-            async {
-                let! operations = getBalanceOperationsAsync mongoDb request
-                return! operations |> next |> interpretCardProgram
-            }
+            getBalanceOperationsAsync mongoDb request |> mapAsync (next >> interpretCardProgram mongoDb)
         | SaveBalanceOperation (op, next) ->
-            async {
-                let! result = saveBalanceOperationAsync mongoDb op
-                return! result |> next |> interpretCardProgram
-            }
+             saveBalanceOperationAsync mongoDb op |> mapAsync (next >> interpretCardProgram mongoDb)
         | Stop a -> async.Return a
+
+    let interpret funcName prog =
+        let interpret = interpretCardProgram (getMongoDb()) |> logifyResultAsync funcName
+        interpret prog

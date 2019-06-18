@@ -32,7 +32,7 @@ let main argv =
     //let paymentResult = CompositionRoot.processPayment paymentModel |> Async.RunSynchronously
     let result =
         CardWorkflow.processPayment DateTimeOffset.UtcNow paymentModel
-        |> Interpreter.interpretCardProgram
+        |> CardProgramInterpreter.interpret "processPayment"
         |> Async.RunSynchronously
     printfn "FINISHED!\n%A" result
     Console.ReadLine() |> ignore
