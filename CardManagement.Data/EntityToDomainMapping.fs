@@ -17,13 +17,15 @@ module EntityToDomainMapping =
     open CardManagement.Common
 
     // In here validation error means that invalid data was not provided by user, but instead
-    // it was in our system. So we change `ValidationError` to `InvalidDbDataError`, which is
-    // much more severe.
-    let inline private mapValidationError (entity: ^a) (err: ValidationError)
-        : InvalidDbDataError =
-        { EntityId = entityId entity
-          EntityName = typeof< ^a>.Name
-          Message = sprintf "Could not deserialize field %s. Message: %s" err.FieldPath err.Message }
+    // it was in our system. So if we have this error we throw exception
+    let private throwOnValidationError entityName (err: ValidationError) =
+        sprintf "Could not deserialize entity [%s]. Field [%s]. Message: %s." entityName err.FieldPath err.Message
+        |> failwith
+
+    let valueOrException (result: Result< 'a, ValidationError>) : 'a =
+        match result with
+        | Ok v -> v
+        | Error e -> throwOnValidationError typeof<'a>.Name e
 
     let private validateCardEntityWithAccInfo (cardEntity: CardEntity, cardAccountEntity)
         : Result<Card * AccountInfo, ValidationError> =
@@ -55,11 +57,11 @@ module EntityToDomainMapping =
 
     let mapCardEntity (cardEntity, cardAccountEntity) =
         validateCardEntity (cardEntity, cardAccountEntity)
-        |> Result.mapError (mapValidationError cardEntity)
+        |> valueOrException
 
     let mapCardEntityWithAccountInfo (cardEntity, cardAccountEntity) =
         validateCardEntityWithAccInfo (cardEntity, cardAccountEntity)
-        |> Result.mapError (mapValidationError cardEntity)
+        |> valueOrException
 
     let private validateAddressEntity (entity: AddressEntity) : Result<Address, ValidationError> =
         result {
@@ -74,9 +76,7 @@ module EntityToDomainMapping =
                   AddressLine2 = entity.AddressLine2 }
         }
 
-    let mapAddressEntity entity : Result<Address, InvalidDbDataError>=
-        validateAddressEntity entity
-        |> Result.mapError (mapValidationError entity)
+    let mapAddressEntity entity = validateAddressEntity entity |> valueOrException
 
     let private validateUserInfoEntity (entity: UserEntity) : Result<UserInfo, ValidationError> =
         result {
@@ -88,12 +88,11 @@ module EntityToDomainMapping =
                   Address = address}
         }
 
-    let mapUserInfoEntity (entity: UserEntity) : Result<UserInfo, InvalidDbDataError> =
+    let mapUserInfoEntity (entity: UserEntity) =
         validateUserInfoEntity entity
-        |> Result.mapError (mapValidationError entity)
+        |> valueOrException
 
-    let mapUserEntity (entity: UserEntity) (cardEntities: (CardEntity * CardAccountInfoEntity) list)
-        : Result<User, InvalidDbDataError> =
+    let mapUserEntity (entity: UserEntity) (cardEntities: (CardEntity * CardAccountInfoEntity) list) =
         result {
             let! userInfo = validateUserInfoEntity entity
             let! cards = List.map validateCardEntity cardEntities |> Result.combine
@@ -101,9 +100,9 @@ module EntityToDomainMapping =
             return
                 { UserInfo = userInfo
                   Cards = cards |> Set.ofList }
-        } |> Result.mapError (mapValidationError entity)
+        } |> valueOrException
 
-    let mapBalanceOperationEntity (entity: BalanceOperationEntity) : Result<BalanceOperation, InvalidDbDataError> =
+    let mapBalanceOperationEntity (entity: BalanceOperationEntity)  =
         result {
             let! cardNumber = entity.Id.CardNumber |> CardNumber.create "id.cardNumber"
             let! balanceChange =
@@ -115,4 +114,4 @@ module EntityToDomainMapping =
                   NewBalance = Money entity.NewBalance
                   Timestamp = entity.Id.Timestamp
                   BalanceChange = balanceChange }
-        } |> Result.mapError (mapValidationError entity)
+        } |> valueOrException

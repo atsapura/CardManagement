@@ -34,27 +34,18 @@ module Errors =
         { Operation: string
           Reason: string }
 
-    type InvalidDbDataError =
-        { EntityName: string
-          EntityId: string
-          Message: string }
-
     type DataRelatedError =
         | EntityAlreadyExists of entityName: string * id: string
         | EntityNotFound of entityName: string * id: string
         | EntityIsInUse of entityName: string * id: string
         | UpdateError of entityName:string * id: string * message:string
-        | InvalidDbData of InvalidDbDataError
 
-    type Bug =
-        | Exn of Exception
-        | InvalidDbDataError of InvalidDbDataError
 
     type Error =
         | ValidationError of ValidationError
         | OperationNotAllowed of OperationNotAllowedError
         | DataError of DataRelatedError
-        | Bug of Bug
+        | Bug of exn
 
     let validationError fieldPath message = { FieldPath = fieldPath; Message = message } |> Error
 
@@ -71,9 +62,7 @@ module Errors =
     let expectOperationNotAllowedError result = Result.mapError OperationNotAllowed result
 
     let expectDataRelatedError result =
-        match result with
-        | Error (InvalidDbData err) -> InvalidDbDataError err |> Bug |> Error
-        | result -> Result.mapError DataError result
+        Result.mapError DataError result
 
     let expectDataRelatedErrorAsync asyncResult =
         async {
@@ -90,6 +79,7 @@ module Errors =
     type ValidationResult<'a> = Result<'a, ValidationError>
     type IoResult<'a> = AsyncResult<'a, DataRelatedError>
     type PipelineResult<'a> = AsyncResult<'a, Error>
+    type IoQueryResult<'a> = Async<'a option>
 
 [<RequireQualifiedAccess>]
 module Result =

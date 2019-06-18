@@ -12,11 +12,7 @@ module Logging =
 
     let private funcFinishedWithError funcName = sprintf "%s finished with error: %s" funcName
 
-    let logDataError funcName e =
-        let errorMessage = dataRelatedErrorMessage e |> funcFinishedWithError funcName
-        match e with
-        | InvalidDbData d -> Log.Error errorMessage
-        | _ -> Log.Warning errorMessage
+    let logDataError funcName e = dataRelatedErrorMessage e |> funcFinishedWithError funcName |> Log.Warning
 
     let logValidationError funcName e = validationMessage e |> funcFinishedWithError funcName |> Log.Information
 
@@ -42,16 +38,24 @@ module Logging =
             | :? OperationNotAllowedError as er -> logOperationNotAllowed funcName er
             | e -> sprintf "%A" e |> Log.Error
 
-    let logify funcName func x =
+    let logifyResult funcName func x =
         sprintf "start %s with arg\n%A" funcName x |> Log.Information
         let result = func x
         logResult funcName result
         result
 
-    let logifyAsync funcName funcAsync x =
+    let logifyResultAsync funcName funcAsync x =
         async {
             sprintf "start %s with arg\n%A" funcName x |> Log.Information
             let! result = funcAsync x
             logResult funcName result
+            return result
+        }
+
+    let logifyPlainAsync funcName funcAsync x =
+        async {
+            sprintf "start %s with arg\n%A" funcName x |> Log.Information
+            let! result = funcAsync x
+            sprintf "%s finished with result\n%A" funcName result |> Log.Information
             return result
         }
