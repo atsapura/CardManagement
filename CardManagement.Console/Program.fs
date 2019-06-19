@@ -5,6 +5,8 @@ open System
     open CardManagement.CardDomainCommandModels
     open CardManagement.Infrastructure
     open CardManagement
+    open CardManagement.CardWorkflow
+    open CardManagement.CardDomainQueryModels
 
 [<EntryPoint>]
 let main argv =
@@ -41,6 +43,16 @@ let main argv =
     let paymentModel =
         { ProcessPaymentCommandModel.Number = cardNumber
           PaymentAmount = 400M}
+
+    let bigProgram =
+        program {
+            let! (user: UserModel) = CardWorkflow.createUser userId createUser
+            let! (card: CardInfoModel) = CardWorkflow.createCard createCard
+            let! (card: CardInfoModel) = CardWorkflow.topUp DateTimeOffset.UtcNow topUpModel
+            let! (card: CardInfoModel) = CardWorkflow.processPayment DateTimeOffset.UtcNow paymentModel
+            return Ok()
+        }
+
     let runWholeThingAsync =
         async {
             let! user = CardWorkflow.createUser userId createUser |> CardProgramInterpreter.interpret "createUser"
@@ -49,6 +61,6 @@ let main argv =
             let! card = CardWorkflow.processPayment DateTimeOffset.UtcNow paymentModel |> CardProgramInterpreter.interpret "processPayment"
             return ()
         }
-    runWholeThingAsync |> Async.RunSynchronously
+    bigProgram |> CardProgramInterpreter.interpret "bigProgram" |> Async.RunSynchronously |> printfn "FINISHED!\n%A"
     Console.ReadLine() |> ignore
     0 // return an integer exit code

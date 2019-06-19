@@ -6,6 +6,7 @@ module CardProgramInterpreter =
     open Logging
     open CardWorkflow
     open CardManagement.Data
+    open Errors
 
     let private mongoSettings() = AppConfiguration.buildConfig() |> AppConfiguration.getMongoSettings
     let private getMongoDb() = mongoSettings() |> CardMongoConfiguration.getDatabase
@@ -54,10 +55,19 @@ module CardProgramInterpreter =
              saveBalanceOperationAsync mongoDb op |> mapAsync (next >> interpretCardProgram mongoDb)
         | Stop a -> async.Return a
 
-    let interpret funcName prog =
-        let interpret = interpretCardProgram (getMongoDb()) |> logifyResultAsync funcName
-        interpret prog
+    let interpret prog =
+        try
+            let interpret = interpretCardProgram (getMongoDb())
+            interpret prog
+        with
+        | failure -> Bug failure |> Error |> async.Return
 
-    let interpretSimple funcName prog =
-        let interpret = interpretCardProgram (getMongoDb()) |> logifyPlainAsync funcName
-        interpret prog
+    let interpretSimple prog =
+        try
+            let interpret = interpretCardProgram (getMongoDb())
+            async {
+                let! result = interpret prog
+                return Ok result
+            }
+        with
+        | failure -> Bug failure |> Error |> async.Return
