@@ -48,14 +48,12 @@ module CardDomainCommandModels =
 
     [<CLIMutable>]
     type ProcessPaymentCommandModel =
-        { UserId: UserId
-          Number: string
+        { Number: string
           PaymentAmount: decimal }
 
     [<CLIMutable>]
     type TopUpCommandModel =
-        { UserId: UserId
-          Number: string
+        { Number: string
           TopUpAmount: decimal }
 
     [<CLIMutable>]
