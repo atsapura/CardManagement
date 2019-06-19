@@ -4,7 +4,7 @@ module CardProgramInterpreter =
     open CardManagement
     open CardManagement.Common
     open Logging
-    open CardWorkflow
+    open CardProgramBuilder
     open CardManagement.Data
     open Errors
 
@@ -35,6 +35,8 @@ module CardProgramInterpreter =
     let private createUserAsync mongoDb =
         CardDataPipeline.createUserAsync mongoDb |> logifyResultAsync "CardDataPipeline.createUserAsync"
 
+    (* Here is where we inject dependencies. Unlike classic IoC container
+       it checks that you have all the dependencies in compile time. *)
     let rec private interpretCardProgram mongoDb prog =
         match prog with
         | GetCard (cardNumber, next) ->

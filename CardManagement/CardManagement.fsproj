@@ -11,6 +11,7 @@
     <Compile Include="CardActions.fs" />
     <Compile Include="CardDomainQueryModels.fs" />
     <Compile Include="CardDomainCommandModels.fs" />
+    <Compile Include="CardProgramBuilder.fs" />
     <Compile Include="CardWorkflow.fs" />
   </ItemGroup>
 

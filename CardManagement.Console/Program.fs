@@ -42,19 +42,19 @@ let main argv =
 
     let bigProgram =
         program {
-            let! (user: UserModel) = CardWorkflow.createUser userId createUser
+            let! (user: UserModel) = CardWorkflow.createUser (userId, createUser)
             let! (card: CardInfoModel) = CardWorkflow.createCard createCard
-            let! (card: CardInfoModel) = CardWorkflow.topUp DateTimeOffset.UtcNow topUpModel
-            let! (card: CardInfoModel) = CardWorkflow.processPayment DateTimeOffset.UtcNow paymentModel
+            let! (card: CardInfoModel) = CardWorkflow.topUp (DateTimeOffset.UtcNow, topUpModel)
+            let! (card: CardInfoModel) = CardWorkflow.processPayment (DateTimeOffset.UtcNow, paymentModel)
             return Ok()
         }
 
     let runWholeThingAsync =
         async {
-            let! user = CardWorkflow.createUser userId createUser |> CardProgramInterpreter.interpret
+            let! user = CardWorkflow.createUser (userId, createUser) |> CardProgramInterpreter.interpret
             let! card = CardWorkflow.createCard createCard |> CardProgramInterpreter.interpret
-            let! card = CardWorkflow.topUp DateTimeOffset.UtcNow topUpModel |> CardProgramInterpreter.interpret
-            let! card = CardWorkflow.processPayment DateTimeOffset.UtcNow paymentModel |> CardProgramInterpreter.interpret
+            let! card = CardWorkflow.topUp (DateTimeOffset.UtcNow, topUpModel) |> CardProgramInterpreter.interpret
+            let! card = CardWorkflow.processPayment (DateTimeOffset.UtcNow, paymentModel) |> CardProgramInterpreter.interpret
             return ()
         }
     bigProgram |> CardProgramInterpreter.interpret |> Async.RunSynchronously |> printfn "FINISHED!\n%A"
