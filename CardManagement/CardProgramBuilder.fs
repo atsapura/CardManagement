@@ -15,7 +15,7 @@ module CardProgramBuilder =
     so we have to emulate or inject them or whatever.
     In OOP they use DI frameworks for that, but since the ultimate goal is to move as many errors
     in compile time as possible, using classic IoC container would be a step in the opposite direction.
-    How do we solve this? At first I went the most obvious way and just passed all the dependencies
+    How do we solve this? At first I chose the most obvious way and just passed all the dependencies
     in the functions. I kept this code in `obsolete-dependency-managing` branch, see `CardPipeline.fs` file.
     Another option (this one) is to use Interpreter pattern.
     The idea is that we divide our composition code in 2 parts: execution tree and interpreter for that tree.
@@ -30,8 +30,9 @@ module CardProgramBuilder =
     All it knows is a name of operation, input parameter type and return type.
     Basically a signature, but without any side effect information, e.g. `Card` instead of `Task<Card>` or `Async<Card>`.
     But since we are building a tree structure, instead of using interfaces or plain function signatures,
-    we use union type with a tuple inside every case. We use 1 union for 1 bounded context (in our case the whole app is 1 context),
-    this union represents all the possible dependencies we use in this bounded context.
+    we use union type with a tuple inside every case.
+    We use 1 union for 1 bounded context (in our case the whole app is 1 context).
+    This union represents all the possible dependencies we use in this bounded context.
     Every case replresent a placeholder for a dependency.
     First element of a tuple inside the case is an input parameter of dependency.
     A second tuple is a function, which receives an output parameter of that dependency
