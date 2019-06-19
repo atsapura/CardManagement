@@ -14,14 +14,10 @@ let main argv =
     let userId = Guid.Parse "b3f0a6f4-ee04-48ab-b838-9b3330c6bca9"
     let cardNumber = "1234123412341234"
 
-    //let card = CompositionRoot.createCard createCard |> Async.RunSynchronously
-    //let user = CompositionRoot.getUser userId |> Async.RunSynchronously
-    //let card = CompositionRoot.getCard cardNumber |> Async.RunSynchronously
     //let setDailyLimitModel =
     //    { SetDailyLimitCardCommandModel.UserId = userId
     //      Number = cardNumber
     //      Limit = 500M}
-    //let setLimitResult = CompositionRoot.setDailyLimit setDailyLimitModel |> Async.RunSynchronously
     let createUser =
         { Name = "Daario Naharis"
           Address =
@@ -55,12 +51,12 @@ let main argv =
 
     let runWholeThingAsync =
         async {
-            let! user = CardWorkflow.createUser userId createUser |> CardProgramInterpreter.interpret "createUser"
-            let! card = CardWorkflow.createCard createCard |> CardProgramInterpreter.interpret "createCard"
-            let! card = CardWorkflow.topUp DateTimeOffset.UtcNow topUpModel |> CardProgramInterpreter.interpret "topUp"
-            let! card = CardWorkflow.processPayment DateTimeOffset.UtcNow paymentModel |> CardProgramInterpreter.interpret "processPayment"
+            let! user = CardWorkflow.createUser userId createUser |> CardProgramInterpreter.interpret
+            let! card = CardWorkflow.createCard createCard |> CardProgramInterpreter.interpret
+            let! card = CardWorkflow.topUp DateTimeOffset.UtcNow topUpModel |> CardProgramInterpreter.interpret
+            let! card = CardWorkflow.processPayment DateTimeOffset.UtcNow paymentModel |> CardProgramInterpreter.interpret
             return ()
         }
-    bigProgram |> CardProgramInterpreter.interpret "bigProgram" |> Async.RunSynchronously |> printfn "FINISHED!\n%A"
+    bigProgram |> CardProgramInterpreter.interpret |> Async.RunSynchronously |> printfn "FINISHED!\n%A"
     Console.ReadLine() |> ignore
     0 // return an integer exit code
