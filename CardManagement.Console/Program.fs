@@ -7,6 +7,7 @@ open System
     open CardManagement
     open CardManagement.CardWorkflow
     open CardManagement.CardDomainQueryModels
+    open CardProgramBuilder
 
 [<EntryPoint>]
 let main argv =
@@ -40,23 +41,14 @@ let main argv =
         { ProcessPaymentCommandModel.Number = cardNumber
           PaymentAmount = 400M}
 
-    let bigProgram =
-        program {
-            let! (user: UserModel) = CardWorkflow.createUser (userId, createUser)
-            let! (card: CardInfoModel) = CardWorkflow.createCard createCard
-            let! (card: CardInfoModel) = CardWorkflow.topUp (DateTimeOffset.UtcNow, topUpModel)
-            let! (card: CardInfoModel) = CardWorkflow.processPayment (DateTimeOffset.UtcNow, paymentModel)
-            return Ok()
-        }
-
     let runWholeThingAsync =
         async {
-            let! user = CardWorkflow.createUser (userId, createUser) |> CardProgramInterpreter.interpret
-            let! card = CardWorkflow.createCard createCard |> CardProgramInterpreter.interpret
-            let! card = CardWorkflow.topUp (DateTimeOffset.UtcNow, topUpModel) |> CardProgramInterpreter.interpret
-            let! card = CardWorkflow.processPayment (DateTimeOffset.UtcNow, paymentModel) |> CardProgramInterpreter.interpret
+            let! user = CardApi.createUser (userId, createUser)
+            let! card = CardApi.createCard createCard
+            let! card = CardApi.topUp (DateTimeOffset.UtcNow, topUpModel)
+            let! card = CardApi.processPayment (DateTimeOffset.UtcNow, paymentModel)
             return ()
         }
-    bigProgram |> CardProgramInterpreter.interpret |> Async.RunSynchronously |> printfn "FINISHED!\n%A"
+    runWholeThingAsync |> Async.RunSynchronously
     Console.ReadLine() |> ignore
     0 // return an integer exit code

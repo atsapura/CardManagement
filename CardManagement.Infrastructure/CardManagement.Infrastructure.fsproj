@@ -9,6 +9,7 @@
     <Compile Include="Logging.fs" />
     <Compile Include="AppConfiguration.fs" />
     <Compile Include="CardProgramInterpreter.fs" />
+    <Compile Include="CardApi.fs" />
   </ItemGroup>
 
   <ItemGroup>
