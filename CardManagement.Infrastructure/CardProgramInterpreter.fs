@@ -40,21 +40,21 @@ module CardProgramInterpreter =
     let rec private interpretCardProgram mongoDb prog =
         match prog with
         | GetCard (cardNumber, next) ->
-            cardNumber |> getCardAsync mongoDb |> mapAsync (next >> interpretCardProgram mongoDb)
+            cardNumber |> getCardAsync mongoDb |> bindAsync (next >> interpretCardProgram mongoDb)
         | GetCardWithAccountInfo (number, next) ->
-            number |> getCardWithAccInfoAsync mongoDb |> mapAsync (next >> interpretCardProgram mongoDb)
+            number |> getCardWithAccInfoAsync mongoDb |> bindAsync (next >> interpretCardProgram mongoDb)
         | CreateCard ((card,acc), next) ->
-            (card, acc) |> createCardAsync mongoDb |> mapAsync (next >> interpretCardProgram mongoDb)
+            (card, acc) |> createCardAsync mongoDb |> bindAsync (next >> interpretCardProgram mongoDb)
         | ReplaceCard (card, next) ->
-            card |> replaceCardAsync mongoDb |> mapAsync (next >> interpretCardProgram mongoDb)
+            card |> replaceCardAsync mongoDb |> bindAsync (next >> interpretCardProgram mongoDb)
         | GetUser (id, next) ->
-            getUserAsync mongoDb id |> mapAsync (next >> interpretCardProgram mongoDb)
+            getUserAsync mongoDb id |> bindAsync (next >> interpretCardProgram mongoDb)
         | CreateUser (user, next) ->
-            user |> createUserAsync mongoDb |> mapAsync (next >> interpretCardProgram mongoDb)
+            user |> createUserAsync mongoDb |> bindAsync (next >> interpretCardProgram mongoDb)
         | GetBalanceOperations (request, next) ->
-            getBalanceOperationsAsync mongoDb request |> mapAsync (next >> interpretCardProgram mongoDb)
+            getBalanceOperationsAsync mongoDb request |> bindAsync (next >> interpretCardProgram mongoDb)
         | SaveBalanceOperation (op, next) ->
-             saveBalanceOperationAsync mongoDb op |> mapAsync (next >> interpretCardProgram mongoDb)
+             saveBalanceOperationAsync mongoDb op |> bindAsync (next >> interpretCardProgram mongoDb)
         | Stop a -> async.Return a
 
     let interpret prog =
