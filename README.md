@@ -21,7 +21,7 @@ To run this thing you'll need:
 Database here is MongoDb, hosted in docker container.
 So you just have to navigate to `docker` folder and run `docker-compose up`. That's it.
 
-For web api `Giraffe` framework will be used. However now it's not there yet, so you have to run it from `CardManagement.Console` project for now.
+For web api `Giraffe` framework is used. You can also play with it using `CardManagement.Console` project.
 
 ## Project overview
 
