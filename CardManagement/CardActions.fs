@@ -63,7 +63,8 @@ module CardActions =
             else
             match accInfo.DailyLimit with
             | Limit limit when limit < spentToday + paymentAmount ->
-                sprintf "Daily limit is exceeded for card %s. Today was spent %O" card.CardNumber.Value spentToday.Value
+                sprintf "Daily limit is exceeded for card %s with daily limit %M. Today was spent %M"
+                    card.CardNumber.Value limit.Value spentToday.Value
                 |> processPaymentNotAllowed
             (*
             We could use here the ultimate wild card case like this:

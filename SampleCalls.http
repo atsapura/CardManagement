@@ -1,0 +1,13 @@
+PATCH https://localhost:5001/cards/processPayment
+Content-Type: application/json
+Content-Length: 55
+
+{"cardNumber": "1234123412341234","paymentAmount":137}
+
+###
+
+PATCH https://localhost:5001/cards/setDailyLimit
+Content-Type: application/json
+Content-Length: 52
+
+{"cardNumber": "1234123412341234","limit":400}

@@ -24,19 +24,25 @@ module Program =
     open CardManagement.CardDomainCommandModels
     open Giraffe.Serialization
     open Newtonsoft.Json
+    open Newtonsoft.Json.Serialization
+
+    type [<CLIMutable>] ErrorModel = { Error: string }
+    let toErrorModel str = { Error = str }
+    let notFound f = json { Error = "Not found."} f
 
     let errorToResponse e =
-        let message = errorMessage e
+        let message = errorMessage e |> toErrorModel |> json
         match e with
         | Bug exn ->
             Log.Error(exn.ToString())
-            ServerErrors.INTERNAL_ERROR "Oops. Something went wrong"
+            let err = toErrorModel "Oops. Something went wrong" |> json
+            ServerErrors.internalError err
         | OperationNotAllowed _
-        | ValidationError _ -> RequestErrors.UNPROCESSABLE_ENTITY message
+        | ValidationError _ -> RequestErrors.unprocessableEntity message
         | DataError e ->
             match e with
-            | EntityNotFound _ -> RequestErrors.NOT_FOUND message
-            | _ -> RequestErrors.UNPROCESSABLE_ENTITY message
+            | EntityNotFound _ -> RequestErrors.notFound message
+            | _ -> RequestErrors.unprocessableEntity message
 
     let resultToHttpResponseAsync asyncWorkflow : HttpHandler =
         fun next ctx ->
@@ -56,7 +62,7 @@ module Program =
             let responseFn =
                 match result with
                 | Ok (Some ok) -> json ok |> Successful.ok
-                | Ok None -> RequestErrors.NOT_FOUND "Not found"
+                | Ok None -> RequestErrors.notFound notFound
                 | Error e -> errorToResponse e
             return! responseFn next ctx
         }
@@ -88,7 +94,7 @@ module Program =
                     bindJsonForRoute "/cards"
                         (fun cmd -> CardApi.createCard cmd |> resultToHttpResponseAsync)
                 ]
-            RequestErrors.NOT_FOUND "Not Found"
+            RequestErrors.notFound notFound
         ]
 
     let configureApp (app : IApplicationBuilder) =
@@ -101,6 +107,8 @@ module Program =
 
         let customSettings = JsonSerializerSettings()
         customSettings.Converters.Add(OptionConverter())
+        let contractResolver = CamelCasePropertyNamesContractResolver()
+        customSettings.ContractResolver <- contractResolver
 
         services.AddSingleton<IJsonSerializer>(NewtonsoftJsonSerializer(customSettings)) |> ignore
 
