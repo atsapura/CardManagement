@@ -22,6 +22,8 @@ open Serilog
 module Program =
     open FSharp.Control.Tasks.V2
     open CardManagement.CardDomainCommandModels
+    open Giraffe.Serialization
+    open Newtonsoft.Json
 
     let errorToResponse e =
         let message = errorMessage e
@@ -96,6 +98,11 @@ module Program =
     let configureServices (services : IServiceCollection) =
         // Add Giraffe dependencies
         services.AddGiraffe() |> ignore
+
+        let customSettings = JsonSerializerSettings()
+        customSettings.Converters.Add(OptionConverter())
+
+        services.AddSingleton<IJsonSerializer>(NewtonsoftJsonSerializer(customSettings)) |> ignore
 
     [<EntryPoint>]
     let main args =

@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="OptionConverter.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
