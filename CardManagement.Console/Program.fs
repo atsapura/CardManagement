@@ -35,10 +35,10 @@ let main argv =
           UserId = userId }
 
     let topUpModel =
-        { TopUpCommandModel.Number = cardNumber
+        { TopUpCommandModel.CardNumber = cardNumber
           TopUpAmount = 10000m }
     let paymentModel =
-        { ProcessPaymentCommandModel.Number = cardNumber
+        { ProcessPaymentCommandModel.CardNumber = cardNumber
           PaymentAmount = 400M}
 
     let runWholeThingAsync =

@@ -32,26 +32,25 @@ module CardDomainCommandModels =
 
     [<CLIMutable>]
     type ActivateCardCommandModel =
-        { Number: string }
+        { CardNumber: string }
 
     [<CLIMutable>]
     type DeactivateCardCommandModel =
-        { Number: string }
+        { CardNumber: string }
 
     [<CLIMutable>]
     type SetDailyLimitCardCommandModel =
-        { UserId: UserId
-          Number: string
+        { CardNumber: string
           Limit: decimal }
 
     [<CLIMutable>]
     type ProcessPaymentCommandModel =
-        { Number: string
+        { CardNumber: string
           PaymentAmount: decimal }
 
     [<CLIMutable>]
     type TopUpCommandModel =
-        { Number: string
+        { CardNumber: string
           TopUpAmount: decimal }
 
     [<CLIMutable>]
@@ -94,21 +93,21 @@ module CardDomainCommandModels =
     let validateActivateCardCommand : ValidateActivateCardCommand =
         fun cmd ->
             result {
-                let! number = cmd.Number |> validateCardNumber
+                let! number = cmd.CardNumber |> validateCardNumber
                 return { ActivateCommand.CardNumber = number }
             }
 
     let validateDeactivateCardCommand : ValidateDeactivateCardCommand =
         fun cmd ->
             result {
-                let! number = cmd.Number |> validateCardNumber
-                return { CardNumber = number }
+                let! number = cmd.CardNumber |> validateCardNumber
+                return { DeactivateCommand.CardNumber = number }
             }
 
     let validateSetDailyLimitCommand : ValidateSetDailyLimitCommand =
         fun cmd ->
             result {
-                let! number = cmd.Number |> validateCardNumber
+                let! number = cmd.CardNumber |> validateCardNumber
                 let limit = DailyLimit.ofDecimal cmd.Limit
                 return
                     { CardNumber = number
@@ -118,20 +117,20 @@ module CardDomainCommandModels =
     let validateProcessPaymentCommand : ValidateProcessPaymentCommand =
         fun cmd ->
             result {
-                let! number = cmd.Number |> validateCardNumber
+                let! number = cmd.CardNumber |> validateCardNumber
                 let! amount = cmd.PaymentAmount |> MoneyTransaction.create
                 return
-                    { CardNumber = number
+                    { ProcessPaymentCommand.CardNumber = number
                       PaymentAmount = amount }
             }
 
     let validateTopUpCommand : ValidateTopUpCommand =
         fun cmd ->
         result {
-            let! number = cmd.Number |> validateCardNumber
+            let! number = cmd.CardNumber |> validateCardNumber
             let! amount = cmd.TopUpAmount |> MoneyTransaction.create
             return
-                { CardNumber = number
+                { TopUpCommand.CardNumber = number
                   TopUpAmount = amount }
         }
 
@@ -168,7 +167,7 @@ module CardDomainCommandModels =
             let! month = Month.create "expirationMonth" cmd.ExpirationMonth
             let! year = Year.create "expirationYear" cmd.ExpirationYear
             return
-                { Card.Number = number
+                { Card.CardNumber = number
                   Name = name
                   HolderId = cmd.UserId
                   Expiration = month,year

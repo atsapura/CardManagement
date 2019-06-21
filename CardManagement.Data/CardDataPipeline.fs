@@ -28,7 +28,7 @@ module CardDataPipeline =
     let createCardAsync (mongoDb: MongoDb) : CreateCardAsync =
         fun (card, accountInfo) ->
         let cardEntity, _ = card |> DomainToEntityMapping.mapCardToEntity
-        let accountInfoEntity = (card.Number, accountInfo) |> DomainToEntityMapping.mapAccountInfoToEntity
+        let accountInfoEntity = (card.CardNumber, accountInfo) |> DomainToEntityMapping.mapAccountInfoToEntity
         (cardEntity, accountInfoEntity) |> CommandRepository.createCardAsync mongoDb
 
     let createUserAsync (mongoDb: MongoDb) : CreateUserAsync =

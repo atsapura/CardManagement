@@ -19,7 +19,7 @@ module CardDomainQueryModels =
           AddressLine2: string }
 
     type BasicCardInfoModel =
-        { Number: string
+        { CardNumber: string
           Name: string
           ExpirationMonth: uint16
           ExpirationYear: uint16 }
@@ -42,7 +42,7 @@ module CardDomainQueryModels =
           Cards: CardInfoModel list }
 
     let toBasicInfoToModel (basicCard: Card) =
-        { Number = basicCard.Number.Value
+        { CardNumber = basicCard.CardNumber.Value
           Name = basicCard.Name.Value
           ExpirationMonth = (fst basicCard.Expiration).ToNumber()
           ExpirationYear = (snd basicCard.Expiration).Value }

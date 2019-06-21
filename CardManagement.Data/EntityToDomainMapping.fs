@@ -37,14 +37,14 @@ module EntityToDomainMapping =
             let accountInfo =
                 { Balance = Money cardAccountEntity.Balance
                   DailyLimit = DailyLimit.ofDecimal cardAccountEntity.DailyLimit
-                  Holder = cardEntity.UserId }
+                  HolderId = cardEntity.UserId }
             let cardAccountInfo =
                 if cardEntity.IsActive then
                     accountInfo
                     |> Active
                 else Deactivated
             return
-                ({ Number = cardNumber
+                ({ CardNumber = cardNumber
                    Name = name
                    HolderId = cardEntity.UserId
                    Expiration = (month, year)

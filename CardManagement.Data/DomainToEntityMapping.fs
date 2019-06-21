@@ -35,11 +35,11 @@ module DomainToEntityMapping =
             match card.AccountDetails with
             | Deactivated -> None
             | Active accountInfo ->
-                mapAccountInfoToEntity (card.Number, accountInfo)
+                mapAccountInfoToEntity (card.CardNumber, accountInfo)
                 |> Some
         let card =
             { CardEntity.UserId = card.HolderId
-              CardNumber = card.Number.Value
+              CardNumber = card.CardNumber.Value
               Name = card.Name.Value
               IsActive = isActive
               ExpirationMonth = (fst card.Expiration).ToNumber()

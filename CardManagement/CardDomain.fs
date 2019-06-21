@@ -71,12 +71,12 @@ module CardDomain =
     type UserId = System.Guid
 
     type AccountInfo =
-        { Holder: UserId
+        { HolderId: UserId
           Balance: Money
           DailyLimit: DailyLimit }
         with
         static member Default userId =
-            { Holder = userId
+            { HolderId = userId
               Balance = Money 0m
               DailyLimit = Unlimited }
 
@@ -100,7 +100,7 @@ module CardDomain =
     Now it's clear that expiration is about just month and year.
     *)
     type Card =
-        { Number: CardNumber
+        { CardNumber: CardNumber
           Name: LetterString
           HolderId: UserId
           Expiration: (Month * Year)
