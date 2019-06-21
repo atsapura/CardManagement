@@ -9,7 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Startup.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
@@ -26,6 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\CardManagement.Common\CardManagement.Common.fsproj" />
     <ProjectReference Include="..\..\CardManagement.Data\CardManagement.Data.fsproj" />
+    <ProjectReference Include="..\..\CardManagement.Infrastructure\CardManagement.Infrastructure.fsproj" />
     <ProjectReference Include="..\..\CardManagement\CardManagement.fsproj" />
   </ItemGroup>
 

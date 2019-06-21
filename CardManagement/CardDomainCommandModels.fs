@@ -32,13 +32,11 @@ module CardDomainCommandModels =
 
     [<CLIMutable>]
     type ActivateCardCommandModel =
-        { UserId: UserId
-          Number: string }
+        { Number: string }
 
     [<CLIMutable>]
     type DeactivateCardCommandModel =
-        { UserId: UserId
-          Number: string }
+        { Number: string }
 
     [<CLIMutable>]
     type SetDailyLimitCardCommandModel =
