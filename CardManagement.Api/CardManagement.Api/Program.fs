@@ -66,13 +66,13 @@ module Program =
                 | Error e -> errorToResponse e
             return! responseFn next ctx
         }
-    let bindJsonForRoute<'a> r f = route r >=> bindJson<'a> f
+    let bindJsonForRoute<'a> r f = routeCi r >=> bindJson<'a> f
     let webApp =
         choose [
             GET >=>
                 choose [
-                    routef "/users/%O" (fun userId -> CardApi.getUser userId |> optionToHttpResponseAsync)
-                    routef "/cards/%s" (fun cardNumber -> CardApi.getCard cardNumber |> optionToHttpResponseAsync)
+                    routeCif "/users/%O" (fun userId -> CardApi.getUser userId |> optionToHttpResponseAsync)
+                    routeCif "/cards/%s" (fun cardNumber -> CardApi.getCard cardNumber |> optionToHttpResponseAsync)
                 ]
             PATCH >=>
                 choose [

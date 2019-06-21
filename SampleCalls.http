@@ -1,13 +1,38 @@
+### Create user
+
+POST https://localhost:5001/users
+Content-Type: application/json
+Content-Length: 136
+
+{"name": "Uncle Vesemir", "address":{"country":"Finland", "city": "Helsinki", "postalCode": "12345", "addressLine1":"Redenia st. 156"}}
+
+### Create card
+
+POST https://localhost:5001/cards
+Content-Type: application/json
+Content-Length: 162
+
+{"cardNumber": "4111111111111111", "name": "Uncle Vesemir", "expirationMonth": "8", "expirationYear":"2024", "userId":"69f79c5b-d31b-4a03-a038-062a10b59ad1"}
+
+### top up
+
+PATCH https://localhost:5001/cards/topUp
+Content-Type: application/json
+Content-Length: 55
+
+{"cardNumber": "4111111111111111", "topUpAmount":8900}
+### pay
+
 PATCH https://localhost:5001/cards/processPayment
 Content-Type: application/json
 Content-Length: 55
 
 {"cardNumber": "1234123412341234","paymentAmount":137}
 
-###
+### set daily limit
 
 PATCH https://localhost:5001/cards/setDailyLimit
 Content-Type: application/json
 Content-Length: 52
 
-{"cardNumber": "1234123412341234","limit":400}
+{"cardNumber": "1234123412341234","dailyLimit":0}
