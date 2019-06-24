@@ -122,7 +122,8 @@ Now there're several problems with this approach:
 In F# we can do it in a different way:
 ```fsharp
 // First we define a type for CardNumber with private constructor
-// and public factory which receives string and returns `Result<CardNumber, string>`
+// and public factory which receives string and returns `Result<CardNumber, string>`.
+// Normally we would use `ValidationError` instead, but string is good enough for example
 type CardNumber = private CardNumber of string
     with
     member this.Value = match this with CardNumber s -> s
@@ -143,7 +144,7 @@ type CardAccountInfo =
 // We don't need tests for that, the compiler is our test. And we can't accidentally miss this validation.
 type Card =
     { CardNumber: CardNumber
-      Name: LetterString
+      Name: LetterString // LetterString is another type with built-in validation
       HolderId: UserId
       Expiration: (Month * Year)
       AccountDetails: CardAccountInfo }
