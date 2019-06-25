@@ -88,7 +88,7 @@ module CardWorkflow =
             do! createNewUser userInfo |> expectDataRelatedErrorProgram
             return
                 { UserInfo = userInfo
-                  Cards = Set.empty } |> toUserModel |> Ok
+                  Cards = [] } |> toUserModel |> Ok
         }
 
     let createCard cardCommand =

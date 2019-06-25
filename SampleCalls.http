@@ -35,4 +35,4 @@ PATCH https://localhost:5001/cards/setDailyLimit
 Content-Type: application/json
 Content-Length: 52
 
-{"cardNumber": "1234123412341234","dailyLimit":0}
+{"cardNumber": "1234123412341234","limit":900}

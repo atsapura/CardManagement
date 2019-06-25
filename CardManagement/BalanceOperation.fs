@@ -16,4 +16,4 @@ module BalanceOperation =
         let operationFilter { CardNumber = number; BalanceChange = change; Timestamp = timestamp } =
             isDecrease change && number = cardNumber && timestamp.Date = date
         let spendings = List.filter operationFilter operations
-        List.sumBy (fun s -> s.BalanceChange.ToDecimal()) spendings |> Money
+        List.sumBy (fun s -> -s.BalanceChange.ToDecimal()) spendings |> Money

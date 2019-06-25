@@ -74,4 +74,4 @@ module CardDomainQueryModels =
         { Id = user.UserInfo.Id
           Name = user.UserInfo.Name.Value
           Address = user.UserInfo.Address |> toAddressModel
-          Cards = Set.toList user.Cards |> List.map toCardInfoModel }
+          Cards = user.Cards |> List.map toCardInfoModel }
