@@ -1,4 +1,4 @@
-# Making Software
+# Fighting complexity in software development
 ## Problems we face
 While developing software we face a lot of difficulties along the way: unclear requirements, miscommunication, poor development process and so on.
 We also face some technical difficulties: legacy code slows us down, scaling is tricky, some bad decisions of the past kick us in the teeth today.
@@ -389,4 +389,170 @@ We'll have an unbreakable rule here: all business logic is gonna be coded in **p
 - The only thing it does is computes output value. It has no side effects at all.
 - It always produces same output for the same input.
 
-Hence pure functions don't throw exceptions, don't produce random values, don't interact with outside world at any form, be it database or a simple `DateTime.Now`. Of course interacting with impure function automatically renders calling function impure.
+Hence pure functions don't throw exceptions, don't produce random values, don't interact with outside world at any form, be it database or a simple `DateTime.Now`. Of course interacting with impure function automatically renders calling function impure. So what shall we implement?
+
+Here's a list of requirements we have:
+
+- **Activate/deactivate card**
+- **Process payments**
+
+   We can process payment if:
+     1. Card isn't expired
+     2. Card is active
+     3. There's enough money for the payment
+     4. Spendings for today haven't exceeded daily limit.
+
+- **Top up balance**
+
+   We can top up balance for active and not expired card.
+
+- **Set daily limit**
+
+   User can set daily limit if card isn't expired and is active.
+
+When operation can't be completed we have to return an error, so we need to define `OperationNotAllowedError`:
+```fsharp
+    type OperationNotAllowedError =
+        { Operation: string
+          Reason: string }
+
+    // and a helper function to wrap it in `Error` which is a case for `Result<'ok,'error> type
+    let operationNotAllowed operation reason = { Operation = operation; Reason = reason } |> Error
+```
+In this module with business logic that would be _the only_ type of error we return. We don't do validation in here, don't interact with database - just executing operations if we can otherwise return `OperationNotAllowedError`.
+
+Full module can be found [here](https://github.com/atsapura/CardManagement/blob/master/CardManagement/CardActions.fs). I'll list here the trickiest case here: `processPayment`. We have to check for expiration, active/deactivated status, money spent today and current balance. Since we can't interact with outer world, we have to pass all the necessary information as parameters. That way this _logic_ would be very easy to test, and allows you to do property [based testing](https://github.com/fscheck/FsCheck).
+```fsharp
+    let processPayment (currentDate: DateTimeOffset) (spentToday: Money) card (paymentAmount: MoneyTransaction) =
+        // first check for expiration
+        if isCardExpired currentDate card then
+            cardExpiredMessage card.CardNumber |> processPaymentNotAllowed
+        else
+        // then active/deactivated
+        match card.AccountDetails with
+        | Deactivated -> cardDeactivatedMessage card.CardNumber |> processPaymentNotAllowed
+        | Active accInfo ->
+            // if active then check balance
+            if paymentAmount.Value > accInfo.Balance.Value then
+                sprintf "Insufficent funds on card %s" card.CardNumber.Value
+                |> processPaymentNotAllowed
+            else
+            // if balance is ok check limit and money spent today
+            match accInfo.DailyLimit with
+            | Limit limit when limit < spentToday + paymentAmount ->
+                sprintf "Daily limit is exceeded for card %s with daily limit %M. Today was spent %M"
+                    card.CardNumber.Value limit.Value spentToday.Value
+                |> processPaymentNotAllowed
+            (*
+            We could use here the ultimate wild card case like this:
+            | _ ->
+            but it's dangerous because if a new case appears in `DailyLimit` type,
+            we won't get a compile error here, which would remind us to process this
+            new case in here. So this is a safe way to do the same thing.
+            *)
+            | Limit _ | Unlimited ->
+                let newBalance = accInfo.Balance - paymentAmount
+                let updatedCard = { card with AccountDetails = Active { accInfo with Balance = newBalance } }
+                // note that we have to return balance operation, so it can be stored to DB later.
+                let balanceOperation =
+                    { Timestamp = currentDate
+                      CardNumber = card.CardNumber
+                      NewBalance = newBalance
+                      BalanceChange = Decrease paymentAmount }
+                Ok (updatedCard, balanceOperation)
+```
+This `spentToday` - we'll have to calculate it from `BalanceOperation` collection we'll keep in database. So we'll need module for that, which will basically have 1 public function:
+```fsharp
+    let private isDecrease change =
+        match change with
+        | Increase _ -> false
+        | Decrease _ -> true
+
+    let spentAtDate (date: DateTimeOffset) cardNumber operations =
+        let date = date.Date
+        let operationFilter { CardNumber = number; BalanceChange = change; Timestamp = timestamp } =
+            isDecrease change && number = cardNumber && timestamp.Date = date
+        let spendings = List.filter operationFilter operations
+        List.sumBy (fun s -> -s.BalanceChange.ToDecimal()) spendings |> Money
+```
+Good. Now that we're done with all the business logic implementation, time to think about mapping. A lot of our types use discriminated unions, some of our types have no public constructor, so we can't expose them as is to the outside world. We'll need to deal with (de)serialization. Besides that, right now we have only one bounded context in our application, but later on in real life you would want to build a bigger system with multiple bounded contexts, and they have to interact with each other through public contracts, which should be comprehensible for everyone, including other programming languages.
+
+We have to do both way mapping: from public models to domain and vise versa. While mapping from domain to models is pretty strait forward, the other direction has a bit of a pickle: models can have invalid data, after all we use plain types that can be serialized to json. Don't worry, we'll have to build our validation in that mapping. The very fact that we use different types for possibly invalid data and data, that's **always** valid means, that compiler won't let us forget execute validation.
+
+Here's what it looks like:
+```fsharp
+    // You can use type aliases to annotate your functions. This is just an example, but sometimes it makes code more readable
+    type ValidateCreateCardCommand = CreateCardCommandModel -> ValidationResult<Card>
+    let validateCreateCardCommand : ValidateCreateCardCommand =
+        fun cmd ->
+        // that's a computation expression for `Result<>` type.
+        // Thanks to this we don't have to chose between short code and strait forward one,
+        // like we have to do in C#
+        result {
+            let! name = LetterString.create "name" cmd.Name
+            let! number = CardNumber.create "cardNumber" cmd.CardNumber
+            let! month = Month.create "expirationMonth" cmd.ExpirationMonth
+            let! year = Year.create "expirationYear" cmd.ExpirationYear
+            return
+                { Card.CardNumber = number
+                  Name = name
+                  HolderId = cmd.UserId
+                  Expiration = month,year
+                  AccountDetails =
+                     AccountInfo.Default cmd.UserId
+                     |> Active }
+        }
+```
+Full module for mappings and validations is [here](https://github.com/atsapura/CardManagement/blob/master/CardManagement/CardDomainCommandModels.fs) and module for mapping to models is [here](https://github.com/atsapura/CardManagement/blob/master/CardManagement/CardDomainQueryModels.fs).
+
+At this point we have implementation for all the business logic, mappings, validation and so on, and so far all of this is completely isolated from real world: it's written in pure functions entirely. Now you're maybe wondering, how exactly are we gonna make use of this? Because we do have to interact with outside world. More than that, during a workflow execution we have to make some decisions based on outcome of those real-world interactions. So the question is how do we assemble all of this? In OOP they use IoC containers to take care of that, but here we can't do that, since we don't even have objects, we have static functions.
+
+We are gonna use `Interpreter pattern` for that! The idea is that we divide our composition code in 2 parts: execution tree and interpreter for that tree.
+Execution tree is a set of sequentual instructions, like this:
+- validate input card number, if it's valid
+- get me a card by that number. If there's one
+- activate it.
+- save result.
+- map it to model and return.
+Now, this tree doesn't know what database we use, what library we use to call it, it doesn't even know whether we use sync or async calls to do that. All it knows is a name of operation, input parameter type and return type. Basically a signature, but without any side effect information, e.g. `Card` instead of `Task<Card>` or `Async<Card>`. But since we are building a tree structure, instead of using interfaces or plain function signatures, we use union type with a tuple inside every case. We use 1 union for 1 bounded context (in our case the whole app is 1 context). This union represents all the possible dependencies we use in this bounded context. Every case replresent a placeholder for a dependency. First element of a tuple inside the case is an input parameter of dependency. A second tuple is a function, which receives an output parameter of that dependency and returns the rest of our execution tree branch.
+
+Here's what it looks like, full source is [here](https://github.com/atsapura/CardManagement/blob/master/CardManagement/CardProgramBuilder.fs):
+```fsharp
+    type Program<'a> =
+        | GetCard of CardNumber * (Card option -> Program<'a>)
+        | GetCardWithAccountInfo of CardNumber * ((Card*AccountInfo) option -> Program<'a>)
+        | CreateCard of (Card*AccountInfo) * (Result<unit, DataRelatedError> -> Program<'a>)
+        | ReplaceCard of Card * (Result<unit, DataRelatedError> -> Program<'a>)
+        | GetUser of UserId * (User option -> Program<'a>)
+        | CreateUser of UserInfo * (Result<unit, DataRelatedError> -> Program<'a>)
+        | GetBalanceOperations of (CardNumber * DateTimeOffset * DateTimeOffset) * (BalanceOperation list -> Program<'a>)
+        | SaveBalanceOperation of BalanceOperation * (Result<unit, DataRelatedError> -> Program<'a>)
+        | Stop of 'a
+
+    // This bind function allows you to pass a continuation for current node of your expression tree
+    // the code is basically a boiler plate, as you can see.
+    let rec bind f instruction =
+        match instruction with
+        | GetCard (x, next) -> GetCard (x, (next >> bind f))
+        | GetCardWithAccountInfo (x, next) -> GetCardWithAccountInfo (x, (next >> bind f))
+        | CreateCard (x, next) -> CreateCard (x, (next >> bind f))
+        | ReplaceCard (x, next) -> ReplaceCard (x, (next >> bind f))
+        | GetUser (x, next) -> GetUser (x,(next >> bind f))
+        | CreateUser (x, next) -> CreateUser (x,(next >> bind f))
+        | GetBalanceOperations (x, next) -> GetBalanceOperations (x,(next >> bind f))
+        | SaveBalanceOperation (x, next) -> SaveBalanceOperation (x,(next >> bind f))
+        | Stop x -> f x
+
+
+    // this is a set of basic functions. Use them in your expression tree builder to represent dependency call
+    let stop x = Stop x
+    let getCardByNumber number = GetCard (number, stop)
+    let getCardWithAccountInfo number = GetCardWithAccountInfo (number, stop)
+    let createNewCard (card, acc) = CreateCard ((card, acc), stop)
+    let replaceCard card = ReplaceCard (card, stop)
+    let getUserById id = GetUser (id, stop)
+    let createNewUser user = CreateUser (user, stop)
+    let getBalanceOperations (number, fromDate, toDate) = GetBalanceOperations ((number, fromDate, toDate), stop)
+    let saveBalanceOperation op = SaveBalanceOperation (op, stop)
+```
+
