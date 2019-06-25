@@ -244,14 +244,14 @@ let test res1 res2 res3 =
 ```
  Basically, you have to choose whether you write reasonable amount of code, but the code is obscure, relies on exceptions, reflection, expressions and other "magic", or you write much more code, which is hard to read, but it's more durable and straight forward. When such a project gets big you just can't fight it, not in languages with C#-like type systems. Let's consider a simple scenario: you have some entity in your codebase for a while. Today you want to add a new required field. Naturally you need to initialize this field everywhere this entity is created, but compiler doesn't help you at all, since class is mutable and `null` is a valid value. And libraries like `AutoMapper` make it even harder. This mutability allows us to partially initialize objects in one place, then push it somewhere else and continue initialization there. That's another source of bugs.
  
-Language feature comparison is nice, however it's not what this article about. If you're interested in it, I covered that topic in my [previous article](https://medium.com/@liman.rom/f-spoiled-me-or-why-i-dont-enjoy-c-anymore-39e025035a98). And language features themselves shouldn't be a reason to switch technology.
+Meanwhile language feature comparison is nice, however it's not what this article about. If you're interested in it, I covered that topic in my [previous article](https://medium.com/@liman.rom/f-spoiled-me-or-why-i-dont-enjoy-c-anymore-39e025035a98). But language features themselves shouldn't be a reason to switch technology.
 
 So that brings us to these questions:
 1. Why do we really need to switch from modern OOP?
-2. Why should we to switch to FP?
+2. Why should we switch to FP?
 
 Answer to first question is using common OOP languages for modern applications gives you a lot of troubles, because they were designed for a different purposes. It results in time and money you spend to fight their design along with fighting complexity of your application.
-And second answer is FP languages give you an opportunity to design your code in a way that you implement feature once and you forget about it. It works like a clock, and if a new feature breaks the logic of it, it breaks the code, hence you know that immediately.
+And the second answer is FP languages give you an easy way to design your features so they work like a clock, and if a new feature breaks existing logic, it breaks the code, hence you know that immediately.
 
 ***
 However those answers aren't enough. As my friend pointed out during one of our discussions, switching to FP would be useless when you don't know best practices. Our big industry produced tons of articles, books and tutorials about designing OOP applications, and we have production experience with OOP, so we know what to expect from different approaches. Unfortunately, it's not the case for functional programming, so even if you switch to FP, your first attempts most likely would be awkward and certainly wouldn't bring you the desired result: fast and painless developing of complex systems.
@@ -261,3 +261,132 @@ Well, that's precisely what this article is about. As I said, we're gonna build 
 ## How do we design application?
 
 A lot of this ideas I used in design process I borrowed from the great book [Domain Modeling Made Functional](https://www.amazon.com/Domain-Modeling-Made-Functional-Domain-Driven/dp/1680502549), so I strongly encourage you to read it.
+
+Full source code with comments is [here](https://github.com/atsapura/CardManagement). Naturally, I'm not going to put all of it in here, so I'll just walk through key points.
+
+We'll have 4 main projects: business layer, data access layer, infrastructure and, of course, common. Every solution has it, right?
+We begin with modeling our domain. At this point we don't know and don't care about database. It's done on purpose, because having specific database in mind we tend to design our domain according to it, we bring this entity-table relation in business layer, which later brings problems. You only need implement mapping `domain -> DAL` once, while wrong design will trouble us constantly until the point we fix it. So here's what we do: we create a project named `CardManagement` (very creative, I know), and immediately turn on the setting `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` in project file. Why do we need this? Well, we're gonna use discriminated unions heavily, and when you do pattern matching, compiler gives us a warning, if we didn't cover all the possible cases:
+```fsharp
+let fail result =
+    match result with
+    | Ok v -> printfn "%A" v
+    // warning: Incomplete pattern matches on this expression. For example, the value 'Error' may indicate a case not covered by the pattern(s).
+```
+With this setting on, this code just won't compile, which is exactly what we need, when we extend existing functionality and want it to be adjusted everywhere. Next thing we do is creating module (it compiles in a static class) `CardDomain`. In this file we describe domain types and nothing more. Keep in mind that in F#, code and file order matters: by default you can use only what you declared earlier.
+
+### Domain types
+We begin defining our types with `CardNumber` I showed before, although we're gonna need more practical `Error` than just a string, so we'll use `ValidationError`.
+```fsharp
+type ValidationError =
+    { FieldPath: string
+      Message: string }
+
+let validationError field message = { FieldPath = field; Message = message }
+
+// Actually we should use here Luhn's algorithm, but I leave it to you as an exercise,
+// so you can see for yourself how easy is updating code to new requirements.
+let private cardNumberRegex = new Regex("^[0-9]{16}$", RegexOptions.Compiled)
+
+type CardNumber = private CardNumber of string
+    with
+    member this.Value = match this with CardNumber s -> s
+    static member create fieldName str =
+        match str with
+        | (null|"") -> validationError fieldName "card number can't be empty"
+        | str ->
+            if cardNumberRegex.IsMatch(str) then CardNumber str |> Ok
+            else validationError fieldName "Card number must be a 16 digits string"
+```
+Then we of course define `Card` which is the heart of our domain. We know that card has some permanent attributes like number, expiration date and name on card, and some changeable information like balance and daily limit, so we encapsulate that changeable info in other type:
+```fsharp
+type AccountInfo =
+    { HolderId: UserId
+      Balance: Money
+      DailyLimit: DailyLimit }
+
+type Card =
+    { CardNumber: CardNumber
+      Name: LetterString
+      HolderId: UserId
+      Expiration: (Month * Year)
+      AccountDetails: CardAccountInfo }
+```
+Now, there're several types here, which we haven't declared yet:
+1. **Money**
+
+    We could use `decimal` (and we will, but no directly), but `decimal` is less descriptive. Besides, it can be used for representation of other things than money, and we don't want it to be mixed up. So we use custom type `type [<Struct>] Money = Money of decimal `.
+2. **DailyLimit**
+
+   Daily limit can be either set to a specific amount or to be absent at all. If it's present, it must be positive. Instead of using `decimal` or `Money` we define this type:
+   ```fsharp
+    [<Struct>]
+    type DailyLimit =
+        private // private constructor so it can't be created directly outside of module
+        | Limit of Money
+        | Unlimited
+        with
+        static member ofDecimal dec =
+            if dec > 0m then Money dec |> Limit
+            else Unlimited
+        member this.ToDecimalOption() =
+            match this with
+            | Unlimited -> None
+            | Limit limit -> Some limit.Value
+   ```
+   It is more descriptive than just implying that `0M` means that there's no limit, since it also could mean that you can't spend money on this card. The only problem is since we've hidden the constructor, we can't do pattern matching. But no worries, we can use [Active Patterns](https://fsharpforfunandprofit.com/posts/convenience-active-patterns/):
+   ```fsharp
+    let (|Limit|Unlimited|) limit =
+        match limit with
+        | Limit dec -> Limit dec
+        | Unlimited -> Unlimited
+   ```
+   Now we can pattern match `DailyLimit` everywhere as a regular DU.
+3. **LetterString**
+
+   That one is simple. We use same technique as in `CardNumber`. One little thing though: `LetterString` is hardly about credit cards, it's a rather thing and we should move it in `Common` project in `CommonTypes` module. Time comes we move `ValidationError` into separate place as well.
+4. **UserId**
+
+   That one is just an alias `type UserId = System.Guid`. We use it for descriptiveness only.
+
+5. **Month and Year**
+
+   Those have to go to `Common` too. `Month` is gonna be a discriminated union with methods to convert it to and from `unsigned int16`, `Year` is going to be like `CardNumber` but for `uint16` instead of string.
+
+Now let's finish our domain types declaration. We need `User` with some user information and card collection, we need balance operations for top-ups and payments.
+```fsharp
+    type UserInfo =
+        { Name: LetterString
+          Id: UserId
+          Address: Address }
+
+    type User =
+        { UserInfo : UserInfo
+          Cards: Card list }
+
+    [<Struct>]
+    type BalanceChange =
+        | Increase of increase: MoneyTransaction // another common type with validation for positive amount
+        | Decrease of decrease: MoneyTransaction
+        with
+        member this.ToDecimal() =
+            match this with
+            | Increase i -> i.Value
+            | Decrease d -> -d.Value
+
+    [<Struct>]
+    type BalanceOperation =
+        { CardNumber: CardNumber
+          Timestamp: DateTimeOffset
+          BalanceChange: BalanceChange
+          NewBalance: Money }
+```
+Good, we designed our types in a way that invalid state is unrepresentable. Now whenever we deal with instance of any of these types we are sure that data in there is valid and we don't have to validate it again. Now we can proceed to business logic!
+
+### Business logic
+
+We'll have an unbreakable rule here: all business logic is gonna be coded in **pure functions**. A pure function is a function which satisfies following criteria:
+
+- The only thing it does is computes output value. It has no side effects at all.
+- It always produces same output for the same input.
+
+Hence pure functions don't throw exceptions, don't produce random values, don't interact with outside world at any form, be it database or a simple `DateTime.Now`. Of course interacting with impure function automatically renders calling function impure.
