@@ -421,7 +421,7 @@ When operation can't be completed we have to return an error, so we need to defi
 ```
 In this module with business logic that would be _the only_ type of error we return. We don't do validation in here, don't interact with database - just executing operations if we can otherwise return `OperationNotAllowedError`.
 
-Full module can be found [here](https://github.com/atsapura/CardManagement/blob/master/CardManagement/CardActions.fs). I'll list here the trickiest case here: `processPayment`. We have to check for expiration, active/deactivated status, money spent today and current balance. Since we can't interact with outer world, we have to pass all the necessary information as parameters. That way this _logic_ would be very easy to test, and allows you to do property [based testing](https://github.com/fscheck/FsCheck).
+Full module can be found [here](https://github.com/atsapura/CardManagement/blob/master/CardManagement/CardActions.fs). I'll list here the trickiest case here: `processPayment`. We have to check for expiration, active/deactivated status, money spent today and current balance. Since we can't interact with outer world, we have to pass all the necessary information as parameters. That way this _logic_ would be very easy to test, and allows you to do [property based testing](https://github.com/fscheck/FsCheck).
 ```fsharp
     let processPayment (currentDate: DateTimeOffset) (spentToday: Money) card (paymentAmount: MoneyTransaction) =
         // first check for expiration
