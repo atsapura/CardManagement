@@ -508,12 +508,13 @@ Full module for mappings and validations is [here](https://github.com/atsapura/C
 At this point we have implementation for all the business logic, mappings, validation and so on, and so far all of this is completely isolated from real world: it's written in pure functions entirely. Now you're maybe wondering, how exactly are we gonna make use of this? Because we do have to interact with outside world. More than that, during a workflow execution we have to make some decisions based on outcome of those real-world interactions. So the question is how do we assemble all of this? In OOP they use IoC containers to take care of that, but here we can't do that, since we don't even have objects, we have static functions.
 
 We are gonna use `Interpreter pattern` for that! The idea is that we divide our composition code in 2 parts: execution tree and interpreter for that tree.
-Execution tree is a set of sequentual instructions, like this:
+Execution tree is a set of sequential instructions, like this:
 - validate input card number, if it's valid
 - get me a card by that number. If there's one
 - activate it.
 - save result.
 - map it to model and return.
+
 Now, this tree doesn't know what database we use, what library we use to call it, it doesn't even know whether we use sync or async calls to do that. All it knows is a name of operation, input parameter type and return type. Basically a signature, but without any side effect information, e.g. `Card` instead of `Task<Card>` or `Async<Card>`. But since we are building a tree structure, instead of using interfaces or plain function signatures, we use union type with a tuple inside every case. We use 1 union for 1 bounded context (in our case the whole app is 1 context). This union represents all the possible dependencies we use in this bounded context. Every case replresent a placeholder for a dependency. First element of a tuple inside the case is an input parameter of dependency. A second tuple is a function, which receives an output parameter of that dependency and returns the rest of our execution tree branch.
 
 Here's what it looks like, full source is [here](https://github.com/atsapura/CardManagement/blob/master/CardManagement/CardProgramBuilder.fs):
