@@ -25,4 +25,4 @@ module ErrorMessages =
         | ValidationError v -> validationMessage v
         | OperationNotAllowed o -> operationNotAllowedMessage o
         | DataError d -> dataRelatedErrorMessage d
-        | Bug b -> sprintf "Oops, something went wrong."
+        | Bug b -> sprintf "Oops, something went wrong.\n%A" b

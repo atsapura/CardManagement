@@ -557,3 +557,36 @@ Here's what it looks like, full source is [here](https://github.com/atsapura/Car
     let saveBalanceOperation op = SaveBalanceOperation (op, stop)
 ```
 
+With a help of [computation expressions](https://fsharpforfunandprofit.com/series/computation-expressions.html), we now have a very easy way to build our workflows without having to care about implementation of real-world interactions. We do that in [CardWorkflow module](https://github.com/atsapura/CardManagement/blob/master/CardManagement/CardWorkflow.fs):
+
+```fsharp
+    // `program` is the name of our computation expression.
+    // In every `let!` binding we unwrap the result of operation, which can be
+    // either `Program<'a>` or `Program<Result<'a, Error>>`. What we unwrap would be of type 'a.
+    // If, however, an operation returns `Error`, we stop the execution at this very step and return it.
+    // The only thing we have to take care of is making sure that type of error is the same in every operation we call
+    let processPayment (currentDate: DateTimeOffset, payment) =
+        program {
+            (* You can see these `expectValidationError` and `expectDataRelatedErrors` functions here.
+               What they do is map different errors into `Error` type, since every execution branch
+               must return the same type, in this case `Result<'a, Error>`.
+               They also help you quickly understand what's going on in every line of code:
+               validation, logic or calling external storage. *)
+            let! cmd = validateProcessPaymentCommand payment |> expectValidationError
+            let! card = tryGetCard cmd.CardNumber
+            let today = currentDate.Date |> DateTimeOffset
+            let tomorrow = currentDate.Date.AddDays 1. |> DateTimeOffset
+            let! operations = getBalanceOperations (cmd.CardNumber, today, tomorrow)
+            let spentToday = BalanceOperation.spentAtDate currentDate cmd.CardNumber operations
+            let! (card, op) =
+                CardActions.processPayment currentDate spentToday card cmd.PaymentAmount
+                |> expectOperationNotAllowedError
+            do! saveBalanceOperation op |> expectDataRelatedErrorProgram
+            do! replaceCard card |> expectDataRelatedErrorProgram
+            return card |> toCardInfoModel |> Ok
+        }
+```
+
+This module is the last thing we need to implement in business layer. Also, I've done some refactoring: I moved errors and common types to [Common project](https://github.com/atsapura/CardManagement/tree/master/CardManagement.Common). About time we moved on to implementing data access layer.
+
+### Data access layer
