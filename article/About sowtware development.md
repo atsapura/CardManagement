@@ -590,3 +590,95 @@ With a help of [computation expressions](https://fsharpforfunandprofit.com/serie
 This module is the last thing we need to implement in business layer. Also, I've done some refactoring: I moved errors and common types to [Common project](https://github.com/atsapura/CardManagement/tree/master/CardManagement.Common). About time we moved on to implementing data access layer.
 
 ### Data access layer
+
+The design of entities in this layer may depend on our database or framework we use to interact with it. Therefore domain layer doesn't know anything about these entities, which means we have to take care of mapping to and from domain models in here. Which is quite convenient for consumers of our DAL API. For this application I've chosen MongoDB, not because it's a best choice for this kind of task, but because there're many examples of using SQL DBs already and I wanted to add something different. We are gonna use C# driver.
+For the most part it's gonna be pretty strait forward, the only tricky moment is with `Card`. When it's active it has an `AccountInfo` inside, when it's not it doesn't. So we have to split it in two documents: `CardEntity` and `CardAccountInfoEntity`, so that deactivating card doesn't erase information about balance and daily limit.
+Other than that we just gonna use primitive types instead of discriminated unions and types with built-in validation.
+
+There're also few things we need to take care of, since we are using C# library:
+- Convert `null`s to `Option<'a>`
+- Catch expected exceptions and convert them to our errors and wrap it in `Result<_,_>`
+
+We start with [CardDomainEntities module](https://github.com/atsapura/CardManagement/blob/master/CardManagement.Data/CardDomainEntities.fs), where we define our entities:
+```fsharp
+    [<CLIMutable>]
+    type CardEntity =
+        { [<BsonId>]
+          CardNumber: string
+          Name: string
+          IsActive: bool
+          ExpirationMonth: uint16
+          ExpirationYear: uint16
+          UserId: UserId }
+        with
+        // we're gonna need this in every entity for error messages
+        member this.EntityId = this.CardNumber.ToString()
+        // we use this Id comparer quotation (F# alternative to C# Expression) for updating entity by id,
+        // since for different entities identifier has different name and type
+        member this.IdComparer = <@ System.Func<_,_> (fun c -> c.CardNumber = this.CardNumber) @>
+```
+
+Those fields `EntityId` and `IdComparer` we are gonna use with a help of [SRTP](https://gist.github.com/atsapura/fd9d7aa26e337eaa2f7f04d6cbb58ef6). We'll define functions that will retrieve them from any type that has those fields define, without forcing every entity to implement some interface:
+
+```fsharp
+    let inline (|HasEntityId|) x =
+        fun () -> (^a : (member EntityId: string) x)
+
+    let inline entityId (HasEntityId f) = f()
+
+    let inline (|HasIdComparer|) x =
+        fun () -> (^a : (member IdComparer: Quotations.Expr<Func< ^a, bool>>) x)
+
+    // We need to convert F# quotations to C# expressions which C# mongo db driver understands.
+    let inline idComparer (HasIdComparer id) =
+        id()
+        |> LeafExpressionConverter.QuotationToExpression 
+        |> unbox<Expression<Func<_,_>>>
+```
+
+As for `null` and `Option` thing, since we use record types, F# compiler doesn't allow using `null` value, neither for assigning nor for comparison. At the same time record types are just another CLR types, so technically we can and will get a `null` value, thanks to C# and design of this library. We can solve this in 2 ways: use `AllowNullLiteral` attribute, or use `Unchecked.defaultof<'a>`. I went for the second choice since this `null` situation should be localized as much as possible:
+
+```fsharp
+    let isNullUnsafe (arg: 'a when 'a: not struct) =
+        arg = Unchecked.defaultof<'a>
+
+    // then we have this function to convert nulls to option, therefore we limited this
+    // toxic null thing in here.
+    let unsafeNullToOption a =
+        if isNullUnsafe a then None else Some a
+```
+
+In order to deal with expected exception for duplicate key, we use Active Patterns again:
+
+```fsharp
+    // First we define a function which checks, whether exception is about duplicate key
+    let private isDuplicateKeyException (ex: Exception) =
+        ex :? MongoWriteException && (ex :?> MongoWriteException).WriteError.Category = ServerErrorCategory.DuplicateKey
+
+    // Then we have to check wrapping exceptions for this
+    let rec private (|DuplicateKey|_|) (ex: Exception) =
+        match ex with
+        | :? MongoWriteException as ex when isDuplicateKeyException ex ->
+            Some ex
+        | :? MongoBulkWriteException as bex when bex.InnerException |> isDuplicateKeyException ->
+            Some (bex.InnerException :?> MongoWriteException)
+        | :? AggregateException as aex when aex.InnerException |> isDuplicateKeyException ->
+            Some (aex.InnerException :?> MongoWriteException)
+        | _ -> None
+
+    // And here's the usage:
+    let inline private executeInsertAsync (func: 'a -> Async<unit>) arg =
+        async {
+            try
+                do! func(arg)
+                return Ok ()
+            with
+            | DuplicateKey ex ->
+                    return EntityAlreadyExists (arg.GetType().Name, (entityId arg)) |> Error
+        }
+```
+
+The last moment I mention is when we do mapping `Entity -> Domain`, we have to instantiate types with built-in validation, so there can be validation errors. In this case we won't use `Result<_,_>` because if we've got invalid data in DB, it's a bug, not something we expect. So we just throw an exception. Other than that nothing really interesting is happening in here. The full source code of data access layer you'll find [here](https://github.com/atsapura/CardManagement/tree/master/CardManagement.Data).
+
+### Composition, logging and all the rest
+
