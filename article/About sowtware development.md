@@ -678,7 +678,148 @@ In order to deal with expected exception for duplicate key, we use Active Patter
         }
 ```
 
+After mapping is implemented we have everything we need to assemble [API for our data access layer](https://github.com/atsapura/CardManagement/blob/master/CardManagement.Data/CardDataPipeline.fs), which looks like this:
+
+```fsharp
+    // `MongoDb` is a type alias for `IMongoDatabase`
+    let replaceUserAsync (mongoDb: MongoDb) : ReplaceUserAsync =
+        fun user ->
+        user |> DomainToEntityMapping.mapUserToEntity
+        |> CommandRepository.replaceUserAsync mongoDb
+
+    let getUserInfoAsync (mongoDb: MongoDb) : GetUserInfoAsync =
+        fun userId ->
+        async {
+            let! userInfo = QueryRepository.getUserInfoAsync mongoDb userId
+            return userInfo |> Option.map EntityToDomainMapping.mapUserInfoEntity
+        }
+```
+
 The last moment I mention is when we do mapping `Entity -> Domain`, we have to instantiate types with built-in validation, so there can be validation errors. In this case we won't use `Result<_,_>` because if we've got invalid data in DB, it's a bug, not something we expect. So we just throw an exception. Other than that nothing really interesting is happening in here. The full source code of data access layer you'll find [here](https://github.com/atsapura/CardManagement/tree/master/CardManagement.Data).
 
 ### Composition, logging and all the rest
 
+As you remember, we're not gonna use DI framework, we went for interpreter pattern. If you want to know why, here's some reasons:
+- IoC container operates in runtime. So until you run your program you can't know that all the dependencies are satisfied.
+- It's a powerful tool which is very easy to abuse: you can do property injection, use lazy dependencies, and sometimes even some business logic can find it's way in dependency registering/resolving (yeah, I've witnessed it). All of that makes code maintaining extremely hard.
+
+That means we need a place for that functionality. We could place it on a top level in our Web Api, but in my opinion it's not a best choice: right now we are dealing with only 1 bounded context, but if there's more, this global place with all the interpreters for each context will become cumbersome. Besides, there's single responsibility rule, and web api project should be responsible for web, right? So we create [CardManagement.Infrastructure project](https://github.com/atsapura/CardManagement/tree/master/CardManagement.Infrastructure).
+
+Here we will do several things:
+- Composing our functionality
+- App configuration
+- Logging
+
+If we had more than 1 context, app configuration and log configuration should be moved to global infrastructure project, and the only thing happening in this project would be assembling API for our bounded context, but in our case this separation is not necessary.
+
+Let's get down to composition. We've built execution trees in our domain layer, now we have to interpret them. Every node in that tree represents some dependency call, in our case a call to database. If we had a need to interact with 3rd party api, that would be in here also. So our interpreter has to know how to handle every node in that tree, which is verified in compile time, thanks to `<TreatWarningsAsErrors>` setting. Here's what it looks like:
+
+```fsharp
+    // Those `bindAsync (next >> interpretCardProgram mongoDb)` work pretty simple:
+    // we execute async function to the left of this expression, await that operation
+    // and pass the result to the next node, after which we interpret that node as well,
+    // until we reach the bottom of this recursion: `Stop a` node.
+    let rec private interpretCardProgram mongoDb prog =
+        match prog with
+        | GetCard (cardNumber, next) ->
+            cardNumber |> getCardAsync mongoDb |> bindAsync (next >> interpretCardProgram mongoDb)
+        | GetCardWithAccountInfo (number, next) ->
+            number |> getCardWithAccInfoAsync mongoDb |> bindAsync (next >> interpretCardProgram mongoDb)
+        | CreateCard ((card,acc), next) ->
+            (card, acc) |> createCardAsync mongoDb |> bindAsync (next >> interpretCardProgram mongoDb)
+        | ReplaceCard (card, next) ->
+            card |> replaceCardAsync mongoDb |> bindAsync (next >> interpretCardProgram mongoDb)
+        | GetUser (id, next) ->
+            getUserAsync mongoDb id |> bindAsync (next >> interpretCardProgram mongoDb)
+        | CreateUser (user, next) ->
+            user |> createUserAsync mongoDb |> bindAsync (next >> interpretCardProgram mongoDb)
+        | GetBalanceOperations (request, next) ->
+            getBalanceOperationsAsync mongoDb request |> bindAsync (next >> interpretCardProgram mongoDb)
+        | SaveBalanceOperation (op, next) ->
+             saveBalanceOperationAsync mongoDb op |> bindAsync (next >> interpretCardProgram mongoDb)
+        | Stop a -> async.Return a
+
+    let interpret prog =
+        try
+            let interpret = interpretCardProgram (getMongoDb())
+            interpret prog
+        with
+        | failure -> Bug failure |> Error |> async.Return
+```
+
+Note that this interpreter is the place where we have this `async` thing. We can do another interpreter with `Task` or just a plain sync version of it. Now you're probably wondering, how we can cover this with unit-test, since familiar mock libraries ain't gonna help us. Well, it's easy: you have to make another interpreter. Here's what it can look like:
+
+```fsharp
+    type SaveResult = Result<unit, DataRelatedError>
+
+    type TestInterpreterConfig =
+        { GetCard: Card option
+          GetCardWithAccountInfo: (Card*AccountInfo) option
+          CreateCard: SaveResult
+          ReplaceCard: SaveResult
+          GetUser: User option
+          CreateUser: SaveResult
+          GetBalanceOperations: BalanceOperation list
+          SaveBalanceOperation: SaveResult }
+
+    let defaultConfig =
+        { GetCard = Some card
+          GetUser = Some user
+          GetCardWithAccountInfo = (card, accountInfo) |> Some
+          CreateCard = Ok()
+          GetBalanceOperations = balanceOperations
+          SaveBalanceOperation = Ok()
+          ReplaceCard = Ok()
+          CreateUser = Ok() }
+
+    let testInject a = fun _ -> a
+
+    let rec interpretCardProgram config (prog: Program<'a>) =
+        match prog with
+        | GetCard (cardNumber, next) ->
+            cardNumber |> testInject config.GetCard |> (next >> interpretCardProgram config)
+        | GetCardWithAccountInfo (number, next) ->
+            number |> testInject config.GetCardWithAccountInfo |> (next >> interpretCardProgram config)
+        | CreateCard ((card,acc), next) ->
+            (card, acc) |> testInject config.CreateCard |> (next >> interpretCardProgram config)
+        | ReplaceCard (card, next) ->
+            card |> testInject config.ReplaceCard |> (next >> interpretCardProgram config)
+        | GetUser (id, next) ->
+            id |> testInject config.GetUser |> (next >> interpretCardProgram config)
+        | CreateUser (user, next) ->
+            user |> testInject config.CreateUser |> (next >> interpretCardProgram config)
+        | GetBalanceOperations (request, next) ->
+            testInject config.GetBalanceOperations request |> (next >> interpretCardProgram config)
+        | SaveBalanceOperation (op, next) ->
+             testInject config.SaveBalanceOperation op |> (next >> interpretCardProgram config)
+        | Stop a -> a
+```
+
+We've created `TestInterpreterConfig` which holds desired results of every operation we want to inject. You can easily change that config for every given test and then just run interpreter. This interpreter is sync, since there's no reason to bother with `Task` or `Async`.
+
+There's nothing really tricky about the logging, but you can find it in [this module](https://github.com/atsapura/CardManagement/blob/master/CardManagement.Infrastructure/Logging.fs). The approach is that we wrap the function in logging: we log function name, parameters and log result. If result is ok, it's info, if error it's a warning and if it's a `Bug` then it's an error. That's pretty much it.
+
+One last thing is to make a facade, since we don't want to expose raw interpreter calls. Here's the whole thing:
+
+```fsharp
+    let createUser arg =
+        arg |> (CardWorkflow.createUser >> CardProgramInterpreter.interpret |> logifyResultAsync "CardApi.createUser")
+    let createCard arg =
+        arg |> (CardWorkflow.createCard >> CardProgramInterpreter.interpret |> logifyResultAsync "CardApi.createCard")
+    let activateCard arg =
+        arg |> (CardWorkflow.activateCard >> CardProgramInterpreter.interpret |> logifyResultAsync "CardApi.activateCard")
+    let deactivateCard arg =
+        arg |> (CardWorkflow.deactivateCard >> CardProgramInterpreter.interpret |> logifyResultAsync "CardApi.deactivateCard")
+    let processPayment arg =
+        arg |> (CardWorkflow.processPayment >> CardProgramInterpreter.interpret |> logifyResultAsync "CardApi.processPayment")
+    let topUp arg =
+        arg |> (CardWorkflow.topUp >> CardProgramInterpreter.interpret |> logifyResultAsync "CardApi.topUp")
+    let setDailyLimit arg =
+        arg |> (CardWorkflow.setDailyLimit >> CardProgramInterpreter.interpret |> logifyResultAsync "CardApi.setDailyLimit")
+    let getCard arg =
+        arg |> (CardWorkflow.getCard >> CardProgramInterpreter.interpret |> logifyResultAsync "CardApi.getCard")
+    let getUser arg =
+        arg |> (CardWorkflow.getUser >> CardProgramInterpreter.interpretSimple |> logifyResultAsync "CardApi.getUser")
+```
+
+All the dependencies here are injected, logging is taken care of, no exceptions is thrown -- that's it. For web api I used [Giraffe](https://github.com/giraffe-fsharp/Giraffe/blob/master/DOCUMENTATION.md) framework. Web project is [here](https://github.com/atsapura/CardManagement/tree/master/CardManagement.Api/CardManagement.Api).
