@@ -5,7 +5,7 @@ We also face some technical difficulties: legacy code slows us down, scaling is 
 All of them can be if not eliminated then significantly reduced, but there's one fundamental problem you can do nothing about: the complexity of your system.
 The idea of a system you are developing itself is always complex, whether you understand it or not.
 Even when you're making _yet another CRUD application_, there're always some edge cases, some tricky things, and from time to time someone asks "Hey, what's gonna happen if I do this and this under these circumstances?" and you say "Hm, that's a very good question.".
-Those tricky cases, shady logic, validation and access managing -- all that adds up to your big idea.
+Those tricky cases, shady logic, validation and access managing - all that adds up to your big idea.
 Quite often that idea is so big that it doesn't fit in one head, and that fact alone brings problems like miscommunication.
 But let's be generous and assume that this team of domain experts and business analysts communicates clearly and produces fine consistent requirements.
 Now we have to implement them, to express that complex idea in our code. Now that code is another system, way more complicated than original idea we had in mind(s).
@@ -823,11 +823,11 @@ One last thing is to make a facade, since we don't want to expose raw interprete
         arg |> (CardWorkflow.getUser >> CardProgramInterpreter.interpretSimple |> logifyResultAsync "CardApi.getUser")
 ```
 
-All the dependencies here are injected, logging is taken care of, no exceptions is thrown -- that's it. For web api I used [Giraffe](https://github.com/giraffe-fsharp/Giraffe/blob/master/DOCUMENTATION.md) framework. Web project is [here](https://github.com/atsapura/CardManagement/tree/master/CardManagement.Api/CardManagement.Api).
+All the dependencies here are injected, logging is taken care of, no exceptions is thrown - that's it. For web api I used [Giraffe](https://github.com/giraffe-fsharp/Giraffe/blob/master/DOCUMENTATION.md) framework. Web project is [here](https://github.com/atsapura/CardManagement/tree/master/CardManagement.Api/CardManagement.Api).
 
 
 ## Conclusion
 
-We have built an application with validation, error handling, logging, business logic - all those you usually have in your application. The difference is this code is way more durable and easy to refactor. Note that we haven't used reflection or code generation, no exceptions, but still our code isn't verbose. It's easy to read, easy to understand and hard to break. As soon as you add another field in your model, or another case in one of our union types, the code won't compile until you update every usage. Sure it doesn't mean you're totally safe or that you don't need any kind of testing at all, it just means that you're gonna have fewer problems when you develope new features or do some refactoring. The development process will be both cheaper and more interesting, because this tool allows you to focus on your domain and business tasks, instead of drugging focus on keeping an eye out that nothing is broken.
+We have built an application with validation, error handling, logging, business logic - all those things you usually have in your application. The difference is this code is way more durable and easy to refactor. Note that we haven't used reflection or code generation, no exceptions, but still our code isn't verbose. It's easy to read, easy to understand and hard to break. As soon as you add another field in your model, or another case in one of our union types, the code won't compile until you update every usage. Sure it doesn't mean you're totally safe or that you don't need any kind of testing at all, it just means that you're gonna have fewer problems when you develope new features or do some refactoring. The development process will be both cheaper and more interesting, because this tool allows you to focus on your domain and business tasks, instead of drugging focus on keeping an eye out that nothing is broken.
 
 Another thing: I don't claim that OOP is completely useless and we don't need it, that's not true. I'm saying that we don't need it for solving _every single task_ we have, and that a big portion of our tasks can be better solved with FP. And truth is, as always, in balance: we can't solve everything efficiently with only one tool, so a good programming language should have a decent support of both FP and OOP. And, unfortunately, a lot of most popular languages today have only lambdas and async programming from functional world.
