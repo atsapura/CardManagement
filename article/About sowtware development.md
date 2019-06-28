@@ -250,7 +250,7 @@ So that brings us to these questions:
 1. Why do we really need to switch from modern OOP?
 2. Why should we switch to FP?
 
-Answer to first question is using common OOP languages for modern applications gives you a lot of troubles, because they were designed for a different purposes, and on top of fighting original problems you have to fight the language. It results in time and money you spend to fight their design along with fighting complexity of your application.
+Answer to first question is using common OOP languages for modern applications gives you a lot of troubles, because they were designed for a different purposes. It results in time and money you spend to fight their design along with fighting complexity of your application.
 
 And the second answer is FP languages give you an easy way to design your features so they work like a clock, and if a new feature breaks existing logic, it breaks the code, hence you know that immediately.
 
