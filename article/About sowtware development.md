@@ -508,15 +508,51 @@ Full module for mappings and validations is [here](https://github.com/atsapura/C
 
 At this point we have implementation for all the business logic, mappings, validation and so on, and so far all of this is completely isolated from real world: it's written in pure functions entirely. Now you're maybe wondering, how exactly are we gonna make use of this? Because we do have to interact with outside world. More than that, during a workflow execution we have to make some decisions based on outcome of those real-world interactions. So the question is how do we assemble all of this? In OOP they use IoC containers to take care of that, but here we can't do that, since we don't even have objects, we have static functions.
 
-We are gonna use `Interpreter pattern` for that! The idea is that we divide our composition code in 2 parts: execution tree and interpreter for that tree.
-Execution tree is a set of sequential instructions, like this:
-- validate input card number, if it's valid
-- get me a card by that number. If there's one
-- activate it.
-- save result.
-- map it to model and return.
+We are gonna use `Interpreter pattern` for that! It's a bit tricky, mostly because it's unfamiliar, but I'll do my best to explain this pattern. First, let's talk about function composition. For instance we have a function `int -> string`. This means that function expects `int` as a parameter and returns string. Now let's say we have another function `string -> char`. At this point we can chain them, i.e. execute first one, take it's output and feed it to the second function, and there's even an operator for that: `>>`. Here's how it works:
 
-Now, this tree doesn't know what database we use, what library we use to call it, it doesn't even know whether we use sync or async calls to do that. All it knows is a name of operation, input parameter type and return type. Basically a signature, but without any side effect information, e.g. `Card` instead of `Task<Card>` or `Async<Card>`. But since we are building a tree structure, instead of using interfaces or plain function signatures, we use union type with a tuple inside every case. We use 1 union for 1 bounded context (in our case the whole app is 1 context). This union represents all the possible dependencies we use in this bounded context. Every case represent a placeholder for a dependency. First element of a tuple inside the case is an input parameter of dependency. A second tuple is a function, which receives an output parameter of that dependency and returns the rest of our execution tree branch.
+```fsharp
+let intToString (i: int) = i.ToString()
+let firstCharOrSpace (s: string) =
+    match s with
+    | (null| "") -> ' '
+    | s -> s.[0]
+
+let firstDigitAsChar = intToString >> firstCharOrSpace
+
+// And you can chain as many functions as you like
+let alwaysTrue = intToString >> firstCharOrSpace >> Char.IsDigit
+```
+
+However we can't use simple chaining in some scenarios, e.g. activating card. Here's a sequence of actions:
+- validate input card number. If it's valid, then
+- try to get card by this number. If there's one
+- activate it.
+- save results. If it's ok then
+- map to model and return.
+
+The first two steps have that `If it's ok then...`. That's the reason why direct chaining is not working.
+
+We could simply inject as parameters those functions, like this:
+```fsharp
+let activateCard getCardAsync saveCardAsync cardNumber = ...
+```
+But there're certain problems with that. First, number of dependencies can grow big and function signature will look ugly. Second, we are tied to specific effects in here: we have to choose if it's a `Task` or `Async` or just plain sync calls. Third, it's easy to mess things up when you have that many functions to pass: e.g. `createUserAsync` and `replaceUserAsync` have same signature but different effects, so when you have to pass them hundreds of times you can make a mistake with really weird symptoms. Because of those reasons we go for interpreter. 
+
+The idea is that we divide our composition code in 2 parts: execution tree and interpreter for that tree. Every node in this tree is a place for a function with effect we want to inject, like `getUserFromDatabase`. Those nodes are defined by name, e.g. `getCard`, input parameter type, e.g. `CardNumber` and return type, e.g. `Card option`. We don't specify here `Task` or `Async`, that's not the part of the tree, _it's a part of interpreter_. Every edge of this tree is some series of pure transformations, like validation or business logic function execution. The edges also have some input, e.g. raw string card number, then there's validation, which can give us an error or a valid card number. If there's an error, we are gonna interrupt that edge, if not, it leads us to the next node: `getCard`. If this node will return `Some card`, we can continue to the next edge, which would be activation, and so on.
+
+For every scenario like `activateCard` or `processPayment` or `topUp` we are gonna build a separate tree. When those trees are built, their nodes are kinda blank, they don't have real functions in them, _they have a place_ for those functions. The goal of interpreter is to fill up those nodes, simple as that. Interpreter knows effects we use, e.g. `Task`, and it knows which real function to put in a given node. When it visits a node, it executes corresponding real function, awaits it in case of `Task` or `Async`, and passes the result to the next edge. That edge may lead to another node, and then it's a work for interpreter again, until this interpreter reaches the stop node, the bottom of our recursion, where we just return the result of the whole execution of our tree.
+
+The whole tree would be represented with discriminated union, and a node would look like this:
+
+```fsharp
+    type Program<'a> =
+        | GetCard of CardNumber * (Card option -> Program<'a>) // <- THE NODE
+        | ... // ANOTHER NODE
+```
+
+It's always gonna be a tuple, where the first element is an input for your dependency, and the last element is a _function_, which receives the result of that dependency. That "space" between those elements of tuple is where your dependency will fit in, like in those composition examples, where you have function `'a -> 'b`, `'c -> 'd` and you need to put another one `'b -> 'c` in between to connect them.
+
+Since we are inside of our bounded context, we shouldn't have too many dependencies, and if we do - it's probably a time to split our context into smaller ones.
 
 Here's what it looks like, full source is [here](https://github.com/atsapura/CardManagement/blob/master/CardManagement/CardProgramBuilder.fs):
 ```fsharp
