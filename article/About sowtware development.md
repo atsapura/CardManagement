@@ -478,7 +478,7 @@ This `spentToday` - we'll have to calculate it from `BalanceOperation` collectio
 ```
 Good. Now that we're done with all the business logic implementation, time to think about mapping. A lot of our types use discriminated unions, some of our types have no public constructor, so we can't expose them as is to the outside world. We'll need to deal with (de)serialization. Besides that, right now we have only one bounded context in our application, but later on in real life you would want to build a bigger system with multiple bounded contexts, and they have to interact with each other through public contracts, which should be comprehensible for everyone, including other programming languages.
 
-We have to do both way mapping: from public models to domain and vise versa. While mapping from domain to models is pretty strait forward, the other direction has a bit of a pickle: models can have invalid data, after all we use plain types that can be serialized to json. Don't worry, we'll have to build our validation in that mapping. The very fact that we use different types for possibly invalid data and data, that's **always** valid means, that compiler won't let us forget execute validation.
+We have to do both way mapping: from public models to domain and vise versa. While mapping from domain to models is pretty strait forward, the other direction has a bit of a pickle: models can have invalid data, after all we use plain types that can be serialized to json. Don't worry, we'll have to build our validation in that mapping. The very fact that we use different types for possibly invalid data and data, that's **always** valid means, that compiler won't let us forget to execute validation.
 
 Here's what it looks like:
 ```fsharp
