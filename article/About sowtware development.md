@@ -2,16 +2,16 @@
 ## Problems we face
 While developing software we face a lot of difficulties along the way: unclear requirements, miscommunication, poor development process and so on.
 We also face some technical difficulties: legacy code slows us down, scaling is tricky, some bad decisions of the past kick us in the teeth today.
-All of them can be if not eliminated then significantly reduced, but there's one fundamental problem you can do nothing about: the complexity of your system.
+All of them can be if not eliminated then significantly reduced, [many of them и в конструкции if not-then на английском я не уверен]  but there's one fundamental problem you can do nothing about: the complexity of your system.
 The idea of a system you are developing itself is always complex, whether you understand it or not.
 Even when you're making _yet another CRUD application_, there're always some edge cases, some tricky things, and from time to time someone asks "Hey, what's gonna happen if I do this and this under these circumstances?" and you say "Hm, that's a very good question.".
-Those tricky cases, shady logic, validation and access managing - all that adds up to your big idea.
+Those tricky cases, shady logic, validation and access managing [https://en.wikipedia.org/wiki/Ninety-ninety_rule]  - all that adds up to your big idea.
 Quite often that idea is so big that it doesn't fit in one head, and that fact alone brings problems like miscommunication.
 But let's be generous and assume that this team of domain experts and business analysts communicates clearly and produces fine consistent requirements.
 Now we have to implement them, to express that complex idea in our code. Now that code is another system, way more complicated than original idea we had in mind(s).
-How so? It faces reality: technical limitations force you to deal with highload, data consistency and availability on top of implementing actual business logic.
+ Why so? It faces reality: technical limitations force you to deal with highload, data consistency and availability on top of implementing actual business logic.
 As you can see the task is pretty challenging, and now we need proper tools to deal with it.
-A programming language is just another tool, and like with every other tool, it's not just about the quality of it, it's probably even more about the tool fitting the job. You might have the best screwdriver there is, but if you need to put some nails into wood, a crappy hammer would be better, right?
+A programming language is just another tool, and like with every other tool, it's not just about the quality of it, it's probably even more about the tool fitting the job. You might have the best screwdriver there, but if you need to put some nails into wood, a crappy hammer would be better, right?
 
 ## Technical aspects
 
@@ -21,9 +21,9 @@ To reflect this object in our program we gather those properties in one class. P
 As you can see objects are about their internal state and life cycle.
 So those three pillars of OOP make perfect sense in this context: we use inheritance to reuse certain state manipulations, encapsulation for state protection and polymorphism for treating similar objects the same way. Mutability as a default also makes sense, since in this context immutable object can't have a life cycle and has always one state, which isn't the most common case.
 
-Thing is when you look at a typical web application of these days, it doesn't deal with objects. Almost everything in our code has either eternal lifetime or no proper lifetime at all. Two most common kinds of "objects" are some sort of services like `UserService`, `EmployeeRepository` or some models/entities/DTOs or whatever you call them. Services have no logical state inside them, they die and born again exactly the same, we just recreate the dependency graph with a new database connection.
+Thing is when you look at a typical web application of these days, it doesn't deal with objects. Almost everything in our code has either eternal lifetime or no proper lifetime at all. Two most common kinds of "objects" are some sort of services like `UserService`, `EmployeeRepository` or some models/entities/DTOs or whatever you call them. [at this point I started to wonder, why not to use stateful/ stateless terms. Maybe you need 'this article is aimed at' disclaimer. ] Services have no logical state inside them, they die and born again exactly the same, we just recreate the dependency graph with a new database connection.
 Entities and models don't have any behavior attached to them, they are merely bundles of data, their mutability doesn't help but quite the opposite.
-Therefore key features of OOP aren't really useful for developing this kind of applications.
+Therefore key features of OOP aren't really useful for developing this kind of applications. [There could be expectation, that you've read classic Kingdom of noun](https://steve-yegge.blogspot.com/2006/03/execution-in-kingdom-of-nouns.html)
 
 What happens in a typical web app is data flowing: validation, transformation, evaluation and so on. And there's a paradigm that fits perfectly for that kind of job: functional programming. And there's a proof for that: all the modern features in popular languages today come from there: `async/await`, lambdas and delegates, reactive programming, discriminated unions (enums in swift or rust, not to be confused with enums in java or .net), tuples - all that is from FP.
 However those are just crumbles, it's very nice to have them, but there's more, way more.
