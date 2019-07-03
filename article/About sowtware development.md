@@ -1,4 +1,6 @@
 # Fighting complexity in software development
+## What's this about
+After working on different projects, I've noticed that every one of them had some common problems, regardless of domain, architecture, code convention and so on. Those problems weren't challenging, just a tedious routine: making sure you didn't miss anything stupid and obvious. Instead of doing this routine on a daily basis I became obsessed with seeking solution: some development approach or code convention or whatever that will help me to design a project in a way that will prevent those problems from happening, so I can focus on interesting stuff. That's the goal of this article: to describe those problems and show you that mix of tools and approaches that I found to solve them.
 ## Problems we face
 While developing software we face a lot of difficulties along the way: unclear requirements, miscommunication, poor development process and so on.
 We also face some technical difficulties: legacy code slows us down, scaling is tricky, some bad decisions of the past kick us in the teeth today.
