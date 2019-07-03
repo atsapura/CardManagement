@@ -119,7 +119,7 @@ module CardDomain =
 
     type User =
         { UserInfo : UserInfo
-          Cards: Card Set }
+          Cards: Card list }
 
     [<Struct>]
     type BalanceChange =
@@ -129,7 +129,7 @@ module CardDomain =
         member this.ToDecimal() =
             match this with
             | Increase i -> i.Value
-            | Decrease d -> d.Value
+            | Decrease d -> -d.Value
 
     [<Struct>]
     type BalanceOperation =

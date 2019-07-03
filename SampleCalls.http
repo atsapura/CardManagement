@@ -21,6 +21,7 @@ Content-Type: application/json
 Content-Length: 55
 
 {"cardNumber": "4111111111111111", "topUpAmount":8900}
+
 ### pay
 
 PATCH https://localhost:5001/cards/processPayment
@@ -35,4 +36,20 @@ PATCH https://localhost:5001/cards/setDailyLimit
 Content-Type: application/json
 Content-Length: 52
 
-{"cardNumber": "1234123412341234","dailyLimit":0}
+{"cardNumber": "1234123412341234","limit":900}
+
+### deactivate
+
+PATCH https://localhost:5001/cards/deactivate
+Content-Type: application/json
+Content-Length: 35
+
+{"cardNumber": "1234123412341234"}
+
+### activate
+
+PATCH https://localhost:5001/cards/activate
+Content-Type: application/json
+Content-Length: 35
+
+{"cardNumber": "1234123412341234"}

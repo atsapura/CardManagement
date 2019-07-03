@@ -9,7 +9,7 @@ validation rules. In any case we should know about such errors.
 *)
 module EntityToDomainMapping =
     open CardManagement
-    open CardDomain
+    open CardManagement.CardDomain
     open CardDomainEntities
     open Common.Errors
     open FsToolkit.ErrorHandling
@@ -99,7 +99,7 @@ module EntityToDomainMapping =
 
             return
                 { UserInfo = userInfo
-                  Cards = cards |> Set.ofList }
+                  Cards = cards }
         } |> valueOrException
 
     let mapBalanceOperationEntity (entity: BalanceOperationEntity)  =

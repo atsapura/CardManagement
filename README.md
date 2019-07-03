@@ -6,8 +6,8 @@ The goal is to create a best practice for building applications or at least give
 It's a very simple bank application.
 
 Here you can
-- Create/Update users
-- Create/Update cards for those users
+- Create/Read users
+- Create/Read cards for those users
 - Set daily limits for cards
 - Top up balance
 - Process payments (according to your current balance, daily limit and today's spendings)
@@ -27,8 +27,8 @@ For web api `Giraffe` framework is used. You can also play with it using `CardMa
 
 There are several projects in this solution, in order of referencing:
 
-- CardManagement.Common. Self explainatory, I guess.
+- CardManagement.Common. Self explanatory, I guess.
 - CardManagement. This is a business logic project, a core of this application. Domain types, actions and composition root for this layer
 - CardManagement.Data. Data access layer. Contains entities, db interaction functions and composition root for this layer.
-- CardManagement.Infrastructure. In here you'll find a global coposition root, logging, app configuration functions.
+- CardManagement.Infrastructure. In here you'll find a global composition root, logging, app configuration functions.
 - CardManagement.Console/CardManagement.Api. Entry point for using global composition root from infrastructure.

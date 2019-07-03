@@ -64,7 +64,4 @@ module DomainToEntityMapping =
         fun operation ->
         { Id = { Timestamp = operation.Timestamp; CardNumber = operation.CardNumber.Value}
           NewBalance = operation.NewBalance.Value
-          BalanceChange =
-            match operation.BalanceChange with
-            | Increase v -> v.Value
-            | Decrease v -> -v.Value }
+          BalanceChange = operation.BalanceChange.ToDecimal() }

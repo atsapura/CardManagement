@@ -71,7 +71,7 @@ module CardDataPipeline =
                         let cards = List.map EntityToDomainMapping.mapCardEntity cardList
                         let user =
                             { UserInfo = userInfo
-                              Cards = cards |> Set.ofList }
+                              Cards = cards }
                         return Some user
                     }
         }
