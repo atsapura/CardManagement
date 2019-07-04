@@ -30,6 +30,17 @@ module Program =
     let toErrorModel str = { Error = str }
     let notFound f = json { Error = "Not found."} f
 
+    let errorHandler (ex: Exception) (logger:  Microsoft.Extensions.Logging.ILogger) =
+        match ex with
+        | :? Newtonsoft.Json.JsonReaderException ->
+            clearResponse
+            >=> RequestErrors.BAD_REQUEST ex.Message
+        | _ ->
+            logger.LogError(EventId(), ex, "An unhandled exception has occurred while executing the request.")
+            ex.GetType().FullName |> printf "%s"
+            clearResponse
+            >=> ServerErrors.INTERNAL_ERROR ex.Message
+
     let errorToResponse e =
         let message = errorMessage e |> toErrorModel |> json
         match e with
@@ -99,7 +110,8 @@ module Program =
 
     let configureApp (app : IApplicationBuilder) =
         // Add Giraffe to the ASP.NET Core pipeline
-        app.UseGiraffe webApp
+        app.UseGiraffeErrorHandler(errorHandler)
+           .UseGiraffe webApp
 
     let configureServices (services : IServiceCollection) =
         // Add Giraffe dependencies
