@@ -17,7 +17,7 @@ A programming language is just another tool, and like with every other tool, it'
 
 ## Technical aspects
 
-Most popular languages today a object oriented. When someone makes an introduction to OOP they usually use examples:
+Most popular languages today are object oriented. When someone makes an introduction to OOP they usually use examples:
 Consider a car, which is an object from the real world. It has various properties like brand, weight, color, max speed, current speed and so on.
 To reflect this object in our program we gather those properties in one class. Properties can be permanent or mutable, which together form both current state of this object and some boundaries in which it may vary. However combining those properties isn't enough, since we have to check that current state makes sense, e.g. current speed doesn't exceed max speed. To make sure of that we attach some logic to this class, mark properties as private to prevent anyone from creating illegal state.
 As you can see objects are about their internal state and life cycle.
