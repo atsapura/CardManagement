@@ -32,3 +32,7 @@ There are several projects in this solution, in order of referencing:
 - CardManagement.Data. Data access layer. Contains entities, db interaction functions and composition root for this layer.
 - CardManagement.Infrastructure. In here you'll find a global composition root, logging, app configuration functions.
 - CardManagement.Console/CardManagement.Api. Entry point for using global composition root from infrastructure.
+
+## Detailed description
+
+[Here's](https://github.com/atsapura/CardManagement/blob/master/article/Fighting%20complexity%20in%20software%20development.md) long and boring explanation of why anyone would even bother to use F# for web api and tips on how to do it in such a way so you don't blow your head off.
