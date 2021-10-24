@@ -35,4 +35,4 @@ There are several projects in this solution, in order of referencing:
 
 ## Detailed description
 
-[Here's](https://github.com/atsapura/CardManagement/blob/master/article/Fighting%20complexity%20in%20software%20development.md) long and boring explanation of why anyone would even bother to use F# for web api and tips on how to do it in such a way so you don't blow your head off.
+[Here's](https://github.com/atsapura/CardManagement/blob/master/article/Fighting.Complexity.md) long and boring explanation of why anyone would even bother to use F# for web api and tips on how to do it in such a way so you don't blow your head off.
