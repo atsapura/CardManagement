@@ -480,7 +480,7 @@ This `spentToday` - we'll have to calculate it from `BalanceOperation` collectio
 ```
 Good. Now that we're done with all the business logic implementation, time to think about mapping. A lot of our types use discriminated unions, some of our types have no public constructor, so we can't expose them as is to the outside world. We'll need to deal with (de)serialization. Besides that, right now we have only one bounded context in our application, but later on in real life you would want to build a bigger system with multiple bounded contexts, and they have to interact with each other through public contracts, which should be comprehensible for everyone, including other programming languages.
 
-We have to do both way mapping: from public models to domain and vise versa. While mapping from domain to models is pretty strait forward, the other direction has a bit of a pickle: models can have invalid data, after all we use plain types that can be serialized to json. Don't worry, we'll have to build our validation in that mapping. The very fact that we use different types for possibly invalid data and data, that's **always** valid means, that compiler won't let us forget to execute validation.
+We have to do both way mapping: from public models to domain and vise versa. While mapping from domain to models is pretty straight forward, the other direction has a bit of a pickle: models can have invalid data, after all we use plain types that can be serialized to json. Don't worry, we'll have to build our validation in that mapping. The very fact that we use different types for possibly invalid data and data, that's **always** valid means, that compiler won't let us forget to execute validation.
 
 Here's what it looks like:
 ```fsharp
@@ -489,7 +489,7 @@ Here's what it looks like:
     let validateCreateCardCommand : ValidateCreateCardCommand =
         fun cmd ->
         // that's a computation expression for `Result<>` type.
-        // Thanks to this we don't have to chose between short code and strait forward one,
+        // Thanks to this we don't have to chose between short code and straight forward one,
         // like we have to do in C#
         result {
             let! name = LetterString.create "name" cmd.Name
@@ -631,7 +631,7 @@ This module is the last thing we need to implement in business layer. Also, I've
 ### Data access layer
 
 The design of entities in this layer may depend on our database or framework we use to interact with it. Therefore domain layer doesn't know anything about these entities, which means we have to take care of mapping to and from domain models in here. Which is quite convenient for consumers of our DAL API. For this application I've chosen MongoDB, not because it's a best choice for this kind of task, but because there're many examples of using SQL DBs already and I wanted to add something different. We are gonna use C# driver.
-For the most part it's gonna be pretty strait forward, the only tricky moment is with `Card`. When it's active it has an `AccountInfo` inside, when it's not it doesn't. So we have to split it in two documents: `CardEntity` and `CardAccountInfoEntity`, so that deactivating card doesn't erase information about balance and daily limit.
+For the most part it's gonna be pretty straight forward, the only tricky moment is with `Card`. When it's active it has an `AccountInfo` inside, when it's not it doesn't. So we have to split it in two documents: `CardEntity` and `CardAccountInfoEntity`, so that deactivating card doesn't erase information about balance and daily limit.
 Other than that we just gonna use primitive types instead of discriminated unions and types with built-in validation.
 
 There're also few things we need to take care of, since we are using C# library:
